@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System;
 using System.Drawing;
+using StreetViewImageRetrieve;
 
 namespace NeuralNetwork_Console
 {
@@ -11,14 +12,25 @@ namespace NeuralNetwork_Console
     {
         static void Main(string[] args)
         {
+            TestStreetView();
+            //TestNetwork();
+        }
+
+        private static void TestStreetView()
+        {
+            StreetView.GetImages(42.345036f, -83.289046f);
+        }
+
+        private static void TestNetwork()
+        {
             var r = new Random();
             var model = new Model(1280, 720);
-            model.AddLayer(new ConvolutionLayer(32, 3, 3, new VolumeSize(1280, 720, 4)));
+            model.AddLayer(new ConvolutionLayer(32, 3, new VolumeSize(1280, 720, 4)));
             model.AddLayer(new MaxPoolingLayer(new VolumeSize(1280, 720, 32)));
-            model.AddLayer(new ConvolutionLayer(32, 3, 32, new VolumeSize(640, 360, 32)));
+            model.AddLayer(new ConvolutionLayer(32, 3, new VolumeSize(640, 360, 32)));
             model.AddLayer(new MaxPoolingLayer(new VolumeSize(640, 360, 32)));
-            model.AddLayer(new DenseLayer(50, new VolumeSize(320, 180, 32)));
-            model.AddLayer(new DenseLayer(4, new VolumeSize(50, 1, 1)));
+            model.AddLayer(new FullyConnectedLayer(50, new VolumeSize(320, 180, 32)));
+            model.AddLayer(new FullyConnectedLayer(4, new VolumeSize(50, 1, 1)));
             model.Build();
 
             Console.WriteLine(model.ToString());

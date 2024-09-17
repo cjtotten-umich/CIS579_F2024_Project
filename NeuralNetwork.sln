@@ -5,9 +5,11 @@ VisualStudioVersion = 17.8.35027.43
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuralNetwork", "NeuralNetwork\NeuralNetwork.csproj", "{A7E8EF27-B124-40D9-8665-F7BCF83B5C47}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuralNetwork_UnitTests", "NeuralNetwork_UnitTests\NeuralNetwork_UnitTests.csproj", "{686EB44A-2F1A-4777-9145-81F9060E1F2A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuralNetwork_UnitTests", "NeuralNetwork_UnitTests\NeuralNetwork_UnitTests.csproj", "{686EB44A-2F1A-4777-9145-81F9060E1F2A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuralNetwork_Console", "NeuralNetwork_Console\NeuralNetwork_Console.csproj", "{CEC912B3-BD70-4FE9-9F3E-A6D68AC49395}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreetViewImageRetrieve", "StreetViewImageRetrieve\StreetViewImageRetrieve.csproj", "{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,14 @@ Global
 		{CEC912B3-BD70-4FE9-9F3E-A6D68AC49395}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CEC912B3-BD70-4FE9-9F3E-A6D68AC49395}.Release|x64.ActiveCfg = Release|x64
 		{CEC912B3-BD70-4FE9-9F3E-A6D68AC49395}.Release|x64.Build.0 = Release|x64
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Debug|x64.Build.0 = Debug|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Release|x64.ActiveCfg = Release|Any CPU
+		{A0CC9500-C8A0-4FAB-8978-E62AB95BEB84}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
