@@ -62,16 +62,16 @@
 
         static void Kernel_FullyConnected_Backward(Index1D index, ArrayView<double> volume, ArrayView<double> weights, ArrayView<double> bias, ArrayView<double> error, ArrayView<double> result)
         {
-            var sum = 0.0;
-            var weightOffset = volume.Length * index;
-            for (int i = 0; i < volume.Length; i++)
-            {
-                weights[weightOffset + i] = 0.0;
-                result[weightOffset + i] = error[index] * 
-            }
+            //var sum = 0.0;
+            //var weightOffset = volume.Length * index;
+            //for (int i = 0; i < volume.Length; i++)
+            //{
+            //    weights[weightOffset + i] = 0.0;
+            //    result[weightOffset + i] = error[index] * 
+            //}
 
-            bias[index] = bias[index] - error[index];
-            result[index] = sum + bias;
+            //bias[index] = bias[index] - error[index];
+            //result[index] = sum + bias;
         }
 
         static void Kernel_ConvolveVolumeWithFilter_Backward(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> filter, int filterX, int filterY, int filterZ, double bias, ArrayView<double> error, ArrayView<double> result)

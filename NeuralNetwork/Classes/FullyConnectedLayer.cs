@@ -28,7 +28,9 @@
 
         public override Volume BackPropegate(Volume volume, Volume error)
         {
-            return Processing.FullyConnected_Backward(volume, Weights, Bias, error);
+            Volume updatedBias;
+            Volume updatedWeights;
+            return Processing.FullyConnected_Backward(volume, Weights, Bias, error, out updatedBias, out updatedWeights);
         }
 
         public override string ToString()
