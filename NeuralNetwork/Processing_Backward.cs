@@ -164,6 +164,8 @@
             _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, resultBuffer.View);
             updatedBias = new Volume(biasBuffer.GetAsArray1D(), bias.Size);
             updatedWeights = new Volume(weightBuffer.GetAsArray1D(), weights.Size);
+            bias.SetData(updatedBias.Data);
+            weights.SetData(updatedWeights.Data);
             return new Volume(resultBuffer.GetAsArray1D(), new VolumeSize(neurons, 1, 1));
         }
     }
