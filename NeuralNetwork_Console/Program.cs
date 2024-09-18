@@ -7,6 +7,8 @@ using System.Drawing;
 using StreetViewImageRetrieve;
 using System.Threading;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Collections;
 
 namespace NeuralNetwork_Console
 {
@@ -14,52 +16,54 @@ namespace NeuralNetwork_Console
     {
         static void Main(string[] args)
         {
-            TestStreetView();
-            //TestNetwork();
+            //TestStreetView(42.30854f, -83.12639f);
+            TestNetwork("C:\\Images", "C:\\Training");
         }
 
-        private static void TestStreetView()
+        private static void TestStreetView(float lat, float lng)
         {
-            var distance = 0.01f;
-            var step = 0.001f;
+            var sw = Stopwatch.StartNew();
 
-            var lat = 42.345036f;
-            var lng = -83.289046f;
+            var distance = 0.01f;
+            var step = 0.0005f;
+;
             var startlat = lat - distance;
             var startlng = lng - distance;
 
             var threads = new List<Thread>();
-            var list = new List<PanoInfo>();    
-            for (float currentLat = startlat; currentLat <= lat + distance;  currentLat += step)
+            var list = new List<PanoInfo>();
+            Console.WriteLine("Getting Pano IDs");
+            for (float currentLat = startlat; currentLat <= lat + distance; currentLat += step)
             {
-                for (float currentLng = startlng; currentLng <  lng + distance; currentLng += step)
+                for (float currentLng = startlng; currentLng < lng + distance; currentLng += step)
                 {
-                    Console.WriteLine(currentLat + ", " + currentLng);
-                    var t = new Thread(thread => list.AddRange(StreetView.GetPanoIds(currentLat, currentLng)));
+                    var t = new Thread(thread => list.AddRange(StreetView.GetPanoIds(new PanoPosition(currentLat, currentLng))));
                     t.Start();
                     threads.Add(t);
                 }
             }
 
-            while(threads.Count > 0)
+            while (threads.Count > 0)
             {
                 if (!threads[0].IsAlive)
                 {
                     threads.RemoveAt(0);
-                    Console.WriteLine(threads.Count.ToString());
+                    Console.WriteLine("Waiting for thread completion: " + threads.Count.ToString());
                 }
             }
 
+            list.RemoveAll(a => a == null);
             list.Sort((a, b) => a.PanoId.CompareTo(b.PanoId));
-            Console.WriteLine("BEFORE:" + list.Count);
+            Console.WriteLine("Pano Ids With Duplicates:" + list.Count);
             list = list.GroupBy(x => x.PanoId).Select(x => x.First()).ToList();
-            Console.WriteLine("AFTER:" + list.Count);
+            Console.WriteLine("AFTER DEDUPLICATION:" + list.Count);
 
             foreach (var item in list)
             {
                 var t = new Thread(thread => StreetView.GetImages(item));
                 t.Start();
                 threads.Add(t);
+                Console.WriteLine("Launching image download threads:" + threads.Count.ToString());
             }
 
 
@@ -68,15 +72,16 @@ namespace NeuralNetwork_Console
                 if (!threads[0].IsAlive)
                 {
                     threads.RemoveAt(0);
-                    Console.WriteLine(threads.Count.ToString());
+                    Console.WriteLine("Waiting for final thread completion: " + threads.Count.ToString());
                 }
             }
-
-            TestNetwork("C:\\Images");
+            sw.Stop();
+            Console.WriteLine("Got all images in " + sw.Elapsed.ToString());
+            //TestNetwork("C:\\Images");
             Console.ReadLine();
         }
 
-        private static void TestNetwork(string path)
+        private static void TestNetwork(string testImages, string trainingImages)
         {
             var r = new Random();
             var model = new Model(512, 512);
@@ -88,26 +93,38 @@ namespace NeuralNetwork_Console
             model.AddLayer(new FullyConnectedLayer(4, new VolumeSize(50, 1, 1)));
             model.Build();
             
-
-            //for (int i = 0; i < 100; i++)
-            //{
-            var paths = Directory.GetFiles(path);
+            // Train the model
+            var paths = Directory.GetFiles(trainingImages);
             var pathList = new List<string>(paths);
             pathList.Sort((a, b) => a.CompareTo(b));
             foreach (var p in pathList)
             {
                 var file = Path.GetFileNameWithoutExtension(p);
+                var directory = Path.GetDirectoryName(p);
                 var image = (Bitmap)Image.FromFile(p);
-                //var label = File.ReadAllText("C:\\Users\\colin.totten\\Downloads\\Project\\face\\labels\\train\\" + file + ".txt");
-
-                var sw = Stopwatch.StartNew();
-                model.Train(image, Volume.MakeRandom(new VolumeSize(4, 1, 1)));
-                sw.Stop();
-                //Console.WriteLine(result);
-                Console.WriteLine("TIME:" + sw.ElapsedMilliseconds);
+                var data = File.ReadAllText(directory + file + ".txt");
+                var truthString = data.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                var truth = Array.ConvertAll(truthString, double.Parse);
+                model.Train(image, new Volume(truth, new VolumeSize(truth.Length, 1, 1)));
                 break;
             }
-            //}
+
+            // Test the model
+            paths = Directory.GetFiles(trainingImages);
+            pathList = new List<string>(paths);
+            pathList.Sort((a, b) => a.CompareTo(b));
+            foreach (var p in pathList)
+            {
+                var file = Path.GetFileNameWithoutExtension(p);
+                var directory = Path.GetDirectoryName(p);
+                var image = (Bitmap)Image.FromFile(p);
+                var data = File.ReadAllText(directory + file + ".txt");
+                var truthString = data.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                var truth = Array.ConvertAll(truthString, double.Parse);
+                var result = model.Process(image);
+
+                break;
+            }
 
             Console.WriteLine("Complete, any key to exit...");
             Console.Read();

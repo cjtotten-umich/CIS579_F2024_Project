@@ -1,16 +1,42 @@
 ﻿namespace NeuralNetwork
 {
     using ILGPU;
+    using ILGPU.Algorithms;
     using ILGPU.IR.Transformations;
     using ILGPU.Runtime;
     using System;
+    using System.Numerics;
 
     public partial class Processing
     {
-        static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, int, int, double, ArrayView<double>, ArrayView<double>> _kernel_ConvolveVolumeWithFilter_Backward;
+        static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, int, int, ArrayView<double>, ArrayView<double>, int, int, ArrayView<double>> _kernel_ConvolveVolumeWithFilter_Backward;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, ArrayView<double>> _kernel_MaxPool_Backward;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, ArrayView<double>> _kernel_AveragePool_Backward;
         static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>> _kernel_FullyConnected_Backward;
+
+        static void Convolve(Index1D index, ArrayView<double> m1, ArrayView<double> m2, int m1x, int m1y, int m1z , int m2x, int m2y, int m2z, ArrayView<double> result)
+        {
+            int i = index / (m1x - m2x + 1);
+            int j = index % (m1y - m2y + 1);
+            double sum = 0;
+
+            for (int m = 0; m < m2x; m++)
+            {
+                for (int n = 0; n < m2y; n++)
+                {
+                    for (int d = 0; d < m2z; d++)
+                    {
+                        int M1Index = ((i + m) * m1y + (j + n)) * m1z + d; // M1 index for 3D access in a 1D array
+                        int M2Index = (m * m2y + n) * m2z + d; // M2 index for 3D access in a 1D array
+
+                        // Accumulate the convolution sum
+                        sum += m1[M1Index] * m2[M2Index];
+                    }
+                }
+            }
+
+            result[index] = sum;
+        }
 
         static void Kernel_MaxPool_Backward(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> error, ArrayView<double> result)
         {
@@ -62,59 +88,34 @@
 
         static void Kernel_FullyConnected_Backward(Index1D index, ArrayView<double> volume, ArrayView<double> weights, ArrayView<double> bias, ArrayView<double> error, ArrayView<double> result)
         {
-            //var sum = 0.0;
-            //var weightOffset = volume.Length * index;
-            //for (int i = 0; i < volume.Length; i++)
-            //{
-            //    weights[weightOffset + i] = 0.0;
-            //    result[weightOffset + i] = error[index] * 
-            //}
-
-            //bias[index] = bias[index] - error[index];
-            //result[index] = sum + bias;
+            var weightOffset = volume.Length * index;
+            bias[index] -= error[index];
+            for (int i = 0; i < volume.Length; i++)
+            {
+                weights[weightOffset + i] -= volume[i] * error[index];
+                result[index] += weights[weightOffset + i] * error[index];
+            }
         }
 
-        static void Kernel_ConvolveVolumeWithFilter_Backward(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> filter, int filterX, int filterY, int filterZ, double bias, ArrayView<double> error, ArrayView<double> result)
+        static void Kernel_ConvolveVolumeWithFilter_Backward(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> filter, int filterX, int filterY, int filterZ, ArrayView<double> bias, ArrayView<double> error, int errorX, int errorY, ArrayView<double> result)
         {
-            //var offsetX = index % x;
-            //var offsetY = index / x;
-            //var halfFilterX = filterX / 2;
-            //var halfFilterY = filterY / 2;
+            bias[0] -= error[index];
 
-            //var offset = index - (halfFilterX) - (halfFilterY * x);
-            //var filterSize = filter.Length;
+            var volumeIndex = index + x + (errorX / 2) + (2 * (index / (x - 2)));
+            double sum = 0;
+            for (int i = 0; i < z; i++)
+            {
+                for (int j = -1; j < 2; j++)
+                {
+                    for (int k = -1; k < 2; k++)
+                    {
+                        var errorIndex = (k + 1) + ((j + 1) * filterX) + (i * filterX * filterY);
+                        var n = volumeIndex + k + (x * j) + (x * y * i);
 
-            //double sum = 0;
-            //int currentX = 0;
-            //int currentY = 0;
-            //int currentZ = 0;
-            //for (int i = 0; i < filterSize; i++)
-            //{
-            //    var currentIndex = offset + currentX + (x * currentY) + (x * y * currentZ);
-            //    if (currentX + offsetX >= halfFilterX &&
-            //        currentY + offsetY >= halfFilterY &&
-            //        currentX - halfFilterX + offsetX < x &&
-            //        currentY - halfFilterY + offsetY < y)
-            //    {
-            //        sum += volume[currentIndex] * filter[i];
-            //    }
-
-            //    currentX++;
-            //    if (currentX >= filterX)
-            //    {
-            //        currentX = 0;
-            //        currentY++;
-            //        if (currentY >= filterY)
-            //        {
-            //            currentY = 0;
-            //            currentZ++;
-            //        }
-            //    }
-            //}
-
-            //result[index] = sum + bias;
+                    }
+                }
+            }
         }
-
 
         public static Volume MaxPool_Backward(Volume volume, Volume error)
         {
@@ -138,14 +139,20 @@
             return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
         }
 
-        public static Volume Convolve_Backward(Volume volume, Volume error)
+        public static Volume Convolve_Backward(Volume volume, Volume filter, Volume error, double bias, out Volume updatedFilter, out double updatedBias)
         {
             var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
+            var filterBuffer = _accelerator.Allocate1D<double>(filter.Data.Length);
             var errorBuffer = _accelerator.Allocate1D<double>(error.Data.Length);
+            var biasBuffer = _accelerator.Allocate1D<double>(1);
             volumeBuffer.CopyFromCPU(volume.Data);
+            filterBuffer.CopyFromCPU(filter.Data);
             errorBuffer.CopyFromCPU(error.Data);
+            biasBuffer.CopyFromCPU(new[] { bias });
             var resultBuffer = _accelerator.Allocate1D<double>(volume.Size.TotalSize);
-            //_kernel_ConvolveVolumeWithFilter_Backward(volume.Size.X * volume.Size.Y, volumeBuffer.View, volume.Size.X, volume.Size.Y, volume.Size.Z, filterBuffer.View, filter.Size.X, filter.Size.Y, filter.Size.Z, bias, errorBuffer.View, resultBuffer.View); 
+            _kernel_ConvolveVolumeWithFilter_Backward(error.Size.X * error.Size.Y, volumeBuffer.View, volume.Size.X, volume.Size.Y, volume.Size.Z, filterBuffer.View, filter.Size.X, filter.Size.Y, filter.Size.Z, biasBuffer.View, errorBuffer.View, error.Size.X, error.Size.Y, resultBuffer.View);
+            updatedFilter = new Volume(filterBuffer.GetAsArray1D(), filter.Size);
+            updatedBias = biasBuffer.GetAsArray1D()[0];
             return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
         }
 
@@ -159,7 +166,7 @@
             volumeBuffer.CopyFromCPU(volume.Data);
             weightBuffer.CopyFromCPU(weights.Data);
             biasBuffer.CopyFromCPU(bias.Data);
-            errorBuffer.CopyFromCPU(bias.Data);
+            errorBuffer.CopyFromCPU(error.Data);
             var resultBuffer = _accelerator.Allocate1D<double>(neurons);
             _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, resultBuffer.View);
             updatedBias = new Volume(biasBuffer.GetAsArray1D(), bias.Size);

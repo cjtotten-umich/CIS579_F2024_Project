@@ -7,16 +7,12 @@ namespace StreetViewImageRetrieve
     {
         public string PanoId { get; set; }
 
-        public float Latitude { get; set; }
+        public PanoPosition Position { get; set; }
 
-        public float Longitude { get; set; }
-
-
-        public PanoInfo(string panoID, float latitude, float longitude) 
+        public PanoInfo(string panoID, PanoPosition position) 
         {
             PanoId = panoID;
-            Latitude = latitude;
-            Longitude = longitude;
+            Position = position;
         }
 
         public override bool Equals(PanoInfo x, PanoInfo y)
@@ -31,7 +27,7 @@ namespace StreetViewImageRetrieve
 
         public override string ToString()
         {
-            return PanoId + " - " + Latitude + "," + Longitude;
+            return PanoId + " - " + Position;
         }
     }
 }

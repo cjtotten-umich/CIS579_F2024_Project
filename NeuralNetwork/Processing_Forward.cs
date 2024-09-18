@@ -49,38 +49,18 @@ namespace NeuralNetwork
         }
         static void Kernel_ConvolveVolumeWithFilter(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> filter, int filterX, int filterY, int filterZ, double bias, ArrayView<double> result)
         {
-            var offsetX = index % x;
-            var offsetY = index / x;
-            var halfFilterX = filterX / 2;
-            var halfFilterY = filterY / 2;
-
-            var offset = index - (halfFilterX) - (halfFilterY * x);
-            var filterSize = filter.Length;
-
+            //Convolve(index, volume, filter, x, y, z, filterX, filterY, filterZ, result);
+            var volumeIndex = index + x + 1 + (2 * (index / (x - 2)));
             double sum = 0;
-            int currentX = 0;
-            int currentY = 0;
-            int currentZ = 0;
-            for (int i = 0; i < filterSize; i++)
+            for (int i = 0; i < z; i++)
             {
-                var currentIndex = offset + currentX + (x * currentY) + (x * y * currentZ);
-                if (currentX + offsetX >= halfFilterX &&
-                    currentY + offsetY >= halfFilterY &&
-                    currentX - halfFilterX + offsetX < x &&
-                    currentY - halfFilterY + offsetY < y)
+                for (int j = -1; j < 2; j++)
                 {
-                    sum += volume[currentIndex] * filter[i];
-                }
-
-                currentX++;
-                if (currentX >= filterX)
-                {
-                    currentX = 0;
-                    currentY++;
-                    if (currentY >= filterY)
+                    for (int k = -1; k < 2; k++)
                     {
-                        currentY = 0;
-                        currentZ++;
+                        var filterIndex = (k + 1) + ((j + 1) * filterX) + (i * filterX * filterY);
+                        var n = volumeIndex + k + (x * j) + (x * y * i);
+                        sum += volume[n] * filter[filterIndex];
                     }
                 }
             }
@@ -90,16 +70,16 @@ namespace NeuralNetwork
 
 
 
-        public static Volume Convolve(Volume volume, Volume filter, double bias)
+        public static Volume ConvolveVolumeWithFilter(Volume volume, Volume filter, double bias)
         {
             var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
             var filterBuffer = _accelerator.Allocate1D<double>(filter.Data.Length);
             volumeBuffer.CopyFromCPU(volume.Data);
             filterBuffer.CopyFromCPU(filter.Data);
-            var newDepth = volume.Size.Z / filter.Size.Z;
-            var resultBuffer = _accelerator.Allocate1D<double>(volume.Size.X * volume.Size.Y * newDepth);
-            _kernel_ConvolveVolumeWithFilter(volume.Size.X * volume.Size.Y, volumeBuffer.View, volume.Size.X, volume.Size.Y, volume.Size.Z, filterBuffer.View, filter.Size.X, filter.Size.Y, filter.Size.Z, bias, resultBuffer.View);
-            return new Volume(resultBuffer.GetAsArray1D(), new VolumeSize(volume.Size.X, volume.Size.Y, newDepth));
+            var newSize = new VolumeSize(volume.Size.X - 2, volume.Size.X - 2, volume.Size.Z / filter.Size.Z);
+            var resultBuffer = _accelerator.Allocate1D<double>(newSize.TotalSize);
+            _kernel_ConvolveVolumeWithFilter(newSize.X * newSize.Y, volumeBuffer.View, volume.Size.X, volume.Size.Y, volume.Size.Z, filterBuffer.View, filter.Size.X, filter.Size.Y, filter.Size.Z, bias, resultBuffer.View);
+            return new Volume(resultBuffer.GetAsArray1D(), newSize);
         }
 
         public static Volume MaxPool(Volume volume)

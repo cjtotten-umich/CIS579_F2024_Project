@@ -13,7 +13,7 @@
             InputVolumeSize = inputVolumeSize;
             OutputVolumeSize = new VolumeSize(neurons, 1, 1);
             Weights = Volume.MakeRandom(new VolumeSize(InputVolumeSize.TotalSize, neurons, 1));
-            Bias = Volume.MakeZero(new VolumeSize(neurons, 0, 0));
+            Bias = Volume.MakeZero(new VolumeSize(neurons, 1, 1));
         }
 
         public override Volume Process(Volume volume)
@@ -28,9 +28,22 @@
 
         public override Volume BackPropegate(Volume volume, Volume error)
         {
+            if (!volume.Size.Equals(InputVolumeSize))
+            {
+                throw new ArgumentException("Input volume is the wrong size");
+            }
+
+            if (!error.Size.Equals(OutputVolumeSize))
+            {
+                throw new ArgumentException("Invalid error size to back propegate");
+            }
+
             Volume updatedBias;
             Volume updatedWeights;
-            return Processing.FullyConnected_Backward(volume, Weights, Bias, error, out updatedBias, out updatedWeights);
+            var result = Processing.FullyConnected_Backward(volume, Weights, Bias, error, out updatedBias, out updatedWeights);
+            Weights = updatedWeights;
+            Bias = updatedBias;
+            return result;
         }
 
         public override string ToString()

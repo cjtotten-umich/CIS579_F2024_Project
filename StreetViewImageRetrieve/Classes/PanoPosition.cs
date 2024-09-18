@@ -1,6 +1,6 @@
 ﻿namespace StreetViewImageRetrieve
 {
-    public class PanoPosition
+    public struct PanoPosition
     {
         public float Latitude { get; set; }
 
@@ -10,6 +10,11 @@
         {
             Latitude = latitude;
             Longitude = longitude;
-        }   
+        }
+
+        public override string ToString()
+        {
+            return "(" + Latitude + ", " + Longitude + ")";
+        }
     }
 }

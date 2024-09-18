@@ -45,7 +45,7 @@
             29, 30, 31, 32
         };
 
-        public static double[] TestKernel_3_3_3 = new double[]
+        public static double[] TestData_3_3_3 = new double[]
         {
             1, 2, 3,
             4, 5, 6,
@@ -60,6 +60,13 @@
             25, 26, 27
         };
 
+        public static double[] TestData_3_3_1 = new double[]
+        {
+            1, 2, 3,
+            4, 5, 6,
+            7, 8, 9
+        };
+
         public static double[] TestData_2_2_2 = new double[]
         {
             1, 2,
@@ -67,6 +74,11 @@
 
             5, 6,
             7, 8
+        };
+
+        public static double[] TestData_1_1_1 = new double[]
+        {
+            1
         };
 
         public static double[] TestData_2_2_1 = new double[]

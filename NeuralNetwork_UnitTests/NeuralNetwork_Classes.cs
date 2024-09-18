@@ -51,7 +51,7 @@
         }
 
         [Test]
-        public void MaxPoolingLayer_Process()
+        public void MaxPoolingLayer_Forward()
         {
             var layer = new MaxPoolingLayer(new VolumeSize(4, 4, 1));
             var volume = layer.Process(new Volume(TestData.TestData_4_4_1, new VolumeSize(4, 4, 1)));
@@ -83,7 +83,7 @@
         }
 
         [Test]
-        public void MaxPoolingLayerBackPropegate()
+        public void MaxPoolingLayer_BackPropegate()
         {
             var layer = new MaxPoolingLayer(new VolumeSize(4, 4, 2));
             var error = new Volume(new double[] { 1, 2, 3, 4, 4, 3, 2, 1 }, new VolumeSize(2, 2, 2));
@@ -99,7 +99,7 @@
         }
 
         [Test]
-        public void AveragePoolingLayerBackPropegate()
+        public void AveragePoolingLayer_BackPropegate()
         {
             var layer = new AveragePoolingLayer(new VolumeSize(4, 4, 2));
             var error = new Volume(new double[] { 1, 2, 3, 4, 4, 3, 2, 1 }, new VolumeSize(2, 2, 2));
@@ -115,25 +115,25 @@
         }
 
         [Test]
-        public void ReluLayerBackPropegate()
+        public void ReluLayer_BackPropegate()
         {
             var layer = new ReluActivationLayer(new VolumeSize(4, 4, 2));
             var error = new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2));
             var volume = layer.BackPropegate(new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2)), error);
             for (int i = 0; i < 32; i++)
             {
-                Assert.That(i + 1 == volume.Data[i]);
+                Assert.That(TestData.AboutEqual(i + 1, volume.Data[i]));
             }
 
             volume = layer.BackPropegate(new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2)) * -1, error);
             for (int i = 0; i < 32; i++)
             {
-                Assert.That(0 == volume.Data[i]);
+                Assert.That(TestData.AboutEqual(0, volume.Data[i]));
             }
         }
 
         [Test]
-        public void SigmoidLayerBackPropegate()
+        public void SigmoidLayer_BackPropegate()
         {
             var layer = new SigmoidActivationLayer(new VolumeSize(2, 2, 2));
             var error = new Volume(TestData.TestData_2_2_2, new VolumeSize(2, 2, 2));
@@ -159,20 +159,21 @@
         }
 
         [Test]
-        public void FullyConnectedLayerBackPropegate()
+        public void FullyConnectedLayer_BackPropegate()
         {
             var layer = new FullyConnectedLayer(1, new VolumeSize(2, 2, 2));
-            var error = new Volume(TestData.TestData_2_2_1, new VolumeSize(2, 2, 1));
+            var error = new Volume(TestData.TestData_1_1_1, new VolumeSize(1, 1, 1));
             var volume = layer.BackPropegate(new Volume(TestData.TestData_2_2_2, new VolumeSize(2, 2, 2)), error);
-            Assert.That(1 < 0);
+            Assert.That(layer.Bias.Data[0] == -1);
+            Assert.That(volume.Size.Equals(new VolumeSize(1, 1, 1)));
         }
 
         [Test]
-        public void ConvolutionLayerBackPropegate()
+        public void ConvolutionLayer_BackPropegate()
         {
-            var layer = new ConvolutionLayer(1, 3, new VolumeSize(2, 2, 2));
-            var error = new Volume(TestData.TestData_2_2_1, new VolumeSize(2, 2, 1));
-            var volume = layer.BackPropegate(new Volume(TestData.TestData_2_2_2, new VolumeSize(2, 2, 2)), error);
+            var layer = new ConvolutionLayer(1, 3, new VolumeSize(4, 4, 2));
+            var error = new Volume(TestData.TestData_2_2_2, new VolumeSize(2, 2, 2));
+            var volume = layer.BackPropegate(new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2)), error);
             Assert.That(1 < 0);
         }
     }

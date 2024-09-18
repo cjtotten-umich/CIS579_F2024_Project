@@ -11,7 +11,12 @@ namespace NeuralNetwork
         }
         public override Volume BackPropegate(Volume volume, Volume error)
         {
-            if (!volume.Size.Equals(error.Size))
+            if (!volume.Size.Equals(InputVolumeSize))
+            {
+                throw new ArgumentException("Input volume is the wrong size");
+            }
+
+            if (!error.Size.Equals(OutputVolumeSize))
             {
                 throw new ArgumentException("Invalid error size to back propegate");
             }

@@ -7,27 +7,27 @@ namespace NeuralNetwork_UnitTests
     public class NeuralNetwork_Processing
     {
         [Test]
-        public void Processing_Convolve()
+        public void Processing_ConvolveVolumeWithFilter()
         {
-            var volume = Processing.Convolve(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestKernel_3_3_3, new VolumeSize(3, 3, 3)), 0);
-            Assert.That(16 == volume.Data.Length);
-            Assert.That(4 == volume.Size.X);
-            Assert.That(4 == volume.Size.Y);
+            var volume = Processing.ConvolveVolumeWithFilter(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)), 0);
+            Assert.That(4 == volume.Data.Length);
+            Assert.That(2 == volume.Size.X);
+            Assert.That(2 == volume.Size.Y);
             Assert.That(1 ==  volume.Size.Z);
-            Assert.That(TestData.AboutEqual(volume.Data[5], 11142));
-            Assert.That(TestData.AboutEqual(volume.Data[10], 13032));
-            Assert.That(TestData.AboutEqual(volume.Data[0], 4935));
-            Assert.That(TestData.AboutEqual(volume.Data[15], 5439));
-
-            volume = Processing.Convolve(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestKernel_3_3_3, new VolumeSize(3, 3, 3)), 1);
-            Assert.That(16 == volume.Data.Length);
-            Assert.That(4 == volume.Size.X);
-            Assert.That(4 == volume.Size.Y);
+            Assert.That(TestData.AboutEqual(volume.Data[0], 11142));
+            Assert.That(TestData.AboutEqual(volume.Data[1], 11520));
+            Assert.That(TestData.AboutEqual(volume.Data[2], 12654));
+            Assert.That(TestData.AboutEqual(volume.Data[3], 13032));
+            
+            volume = Processing.ConvolveVolumeWithFilter(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)), 1);
+            Assert.That(4 == volume.Data.Length);
+            Assert.That(2 == volume.Size.X);
+            Assert.That(2 == volume.Size.Y);
             Assert.That(1 == volume.Size.Z);
-            Assert.That(TestData.AboutEqual(volume.Data[5], 11143));
-            Assert.That(TestData.AboutEqual(volume.Data[10], 13033));
-            Assert.That(TestData.AboutEqual(volume.Data[0], 4936));
-            Assert.That(TestData.AboutEqual(volume.Data[15], 5440));
+            Assert.That(TestData.AboutEqual(volume.Data[0], 11143));
+            Assert.That(TestData.AboutEqual(volume.Data[1], 11521));
+            Assert.That(TestData.AboutEqual(volume.Data[2], 12655));
+            Assert.That(TestData.AboutEqual(volume.Data[3], 13033));
         }
 
         [Test]
