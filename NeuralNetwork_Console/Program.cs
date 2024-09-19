@@ -86,10 +86,10 @@ namespace NeuralNetwork_Console
             var r = new Random();
             var model = new Model(512, 512);
             model.AddLayer(new ConvolutionLayer(32, 3, new VolumeSize(512, 512, 4)));
-            model.AddLayer(new MaxPoolingLayer(new VolumeSize(512, 512, 32)));
-            model.AddLayer(new ConvolutionLayer(32, 3, new VolumeSize(256, 256, 32)));
-            model.AddLayer(new MaxPoolingLayer(new VolumeSize(256, 256, 32)));
-            model.AddLayer(new FullyConnectedLayer(50, new VolumeSize(128, 128, 32)));
+            model.AddLayer(new MaxPoolingLayer(new VolumeSize(510, 510, 32), 3));
+            model.AddLayer(new ConvolutionLayer(32, 3, new VolumeSize(255, 255, 32)));
+            model.AddLayer(new MaxPoolingLayer(new VolumeSize(255, 255, 32), 2));
+            model.AddLayer(new FullyConnectedLayer(50, new VolumeSize(126, 126, 32)));
             model.AddLayer(new FullyConnectedLayer(4, new VolumeSize(50, 1, 1)));
             model.Build();
             

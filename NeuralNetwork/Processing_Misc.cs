@@ -105,6 +105,28 @@
             return data;
         }
 
+        static void Convolve(Index1D index, ArrayView<double> m1, ArrayView<double> m2, int m1x, int m1y, int m1z, int m2x, int m2y, int m2z, ArrayView<double> result)
+        {
+            int x = index % (m1x - m2x + 1);
+            int y = index / (m1x - m2x + 1);
+
+            double sum = 0;
+            for (int i = 0; i < m2z; i++)
+            {
+                for (int j = 0; j < m2y; j++)
+                {
+                    for (int k = 0; k < m2x; k++)
+                    {
+                        var m1i = x + (y * m1x) + k + (m1x * j) + (m1x * m1y * i);
+                        var m2i = k + (j * m2x) + (i * m2x * m2y);
+                        sum += m1[m1i] * m2[m2i];
+                    }
+                }
+            }
+
+            result[index] = sum;
+        }
+
         public static Tuple<double, double, double> Adam(double previousMomentum, double previousVariance, int trainingStep, double gradient)
         {
             var momentumDecay = 0.9;

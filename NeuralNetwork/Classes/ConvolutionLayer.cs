@@ -20,7 +20,7 @@
                 Filters.Add(Volume.MakeRandom(new VolumeSize(filterSize, filterSize, inputVolumeSize.Z)));
             }
 
-            OutputVolumeSize = new VolumeSize(inputVolumeSize.X - 2, inputVolumeSize.Y - 2, numberOfFilters);
+            OutputVolumeSize = new VolumeSize(inputVolumeSize.X  - filterSize + 1, inputVolumeSize.Y - filterSize + 1, numberOfFilters);
         }
 
         public override Volume Process(Volume volume)
@@ -34,7 +34,7 @@
             var offset = 0;
             for (int i = 0; i < Filters.Count; i++)
             {
-                var result = Processing.ConvolveVolumeWithFilter(volume, Filters[i], Bias[i]);
+                var result = Processing.ConvolveWithBias(volume, Filters[i], Bias[i]);
                 Buffer.BlockCopy(result.Data, 0, data, offset, result.Data.Length);
                 offset += result.Data.Length;
             }

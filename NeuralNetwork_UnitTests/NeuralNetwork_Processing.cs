@@ -7,9 +7,9 @@ namespace NeuralNetwork_UnitTests
     public class NeuralNetwork_Processing
     {
         [Test]
-        public void Processing_ConvolveVolumeWithFilter()
+        public void Processing_ConvolveWithBias()
         {
-            var volume = Processing.ConvolveVolumeWithFilter(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)), 0);
+            var volume = Processing.ConvolveWithBias(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)), 0);
             Assert.That(4 == volume.Data.Length);
             Assert.That(2 == volume.Size.X);
             Assert.That(2 == volume.Size.Y);
@@ -19,7 +19,7 @@ namespace NeuralNetwork_UnitTests
             Assert.That(TestData.AboutEqual(volume.Data[2], 12654));
             Assert.That(TestData.AboutEqual(volume.Data[3], 13032));
             
-            volume = Processing.ConvolveVolumeWithFilter(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)), 1);
+            volume = Processing.ConvolveWithBias(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)), 1);
             Assert.That(4 == volume.Data.Length);
             Assert.That(2 == volume.Size.X);
             Assert.That(2 == volume.Size.Y);
@@ -28,6 +28,21 @@ namespace NeuralNetwork_UnitTests
             Assert.That(TestData.AboutEqual(volume.Data[1], 11521));
             Assert.That(TestData.AboutEqual(volume.Data[2], 12655));
             Assert.That(TestData.AboutEqual(volume.Data[3], 13033));
+
+            volume = Processing.ConvolveWithBias(new Volume(TestData.TestData_4_4_3, new VolumeSize(4, 4, 3)), new Volume(TestData.TestData_2_2_3, new VolumeSize(2, 2, 3)), 0);
+            Assert.That(9 == volume.Data.Length);
+            Assert.That(3 == volume.Size.X);
+            Assert.That(3 == volume.Size.Y);
+            Assert.That(1 == volume.Size.Z);
+            Assert.That(TestData.AboutEqual(volume.Data[0], 2060));
+            Assert.That(TestData.AboutEqual(volume.Data[1], 2138));
+            Assert.That(TestData.AboutEqual(volume.Data[2], 2216));
+            Assert.That(TestData.AboutEqual(volume.Data[3], 2372));
+            Assert.That(TestData.AboutEqual(volume.Data[4], 2450));
+            Assert.That(TestData.AboutEqual(volume.Data[5], 2528));
+            Assert.That(TestData.AboutEqual(volume.Data[6], 2684));
+            Assert.That(TestData.AboutEqual(volume.Data[7], 2762));
+            Assert.That(TestData.AboutEqual(volume.Data[8], 2840));
         }
 
         [Test]
@@ -82,7 +97,7 @@ namespace NeuralNetwork_UnitTests
         public void Processing_MaxPool()
         {
             var originalVolume = new Volume(TestData.TestData_4_4_1, new VolumeSize(4, 4, 1));
-            var volume = Processing.MaxPool(originalVolume);
+            var volume = Processing.MaxPool(originalVolume, 2);
             Assert.That(2 == volume.Size.X);
             Assert.That(2 == volume.Size.Y);
             Assert.That(1 == volume.Size.Z);
@@ -93,7 +108,7 @@ namespace NeuralNetwork_UnitTests
             Assert.That(TestData.AboutEqual(16, volume.Data[3]));
 
             originalVolume = new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2));
-            volume = Processing.MaxPool(originalVolume);
+            volume = Processing.MaxPool(originalVolume, 2);
             Assert.That(2 == volume.Size.X);
             Assert.That(2 == volume.Size.Y);
             Assert.That(2 == volume.Size.Z);
@@ -107,6 +122,15 @@ namespace NeuralNetwork_UnitTests
             Assert.That(TestData.AboutEqual(24, volume.Data[5]));
             Assert.That(TestData.AboutEqual(30, volume.Data[6]));
             Assert.That(TestData.AboutEqual(32, volume.Data[7]));
+
+            originalVolume = new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3));
+            volume = Processing.MaxPool(originalVolume, 3);
+            Assert.That(1 == volume.Size.X);
+            Assert.That(1 == volume.Size.Y);
+            Assert.That(3 == volume.Size.Z);
+            Assert.That(9 == volume.Data[0]);
+            Assert.That(18 == volume.Data[1]);
+            Assert.That(27 == volume.Data[2]);
         }
 
         [Test]
@@ -135,7 +159,7 @@ namespace NeuralNetwork_UnitTests
         public void Processing_AveragePool()
         {
             var originalVolume = new Volume(TestData.TestData_4_4_1, new VolumeSize(4, 4, 1));
-            var volume = Processing.AveragePool(originalVolume);
+            var volume = Processing.AveragePool(originalVolume, 2);
             Assert.That(2 == volume.Size.X);
             Assert.That(2 == volume.Size.Y);   
             Assert.That(1 == volume.Size.Z);
@@ -146,7 +170,7 @@ namespace NeuralNetwork_UnitTests
             Assert.That(TestData.AboutEqual(13.5f, volume.Data[3]));
 
             originalVolume = new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2));
-            volume = Processing.AveragePool(originalVolume);
+            volume = Processing.AveragePool(originalVolume, 2);
             Assert.That(2 == volume.Size.X);
             Assert.That(2 == volume.Size.Y);
             Assert.That(2 == volume.Size.Z);
@@ -160,6 +184,15 @@ namespace NeuralNetwork_UnitTests
             Assert.That((86.0 / 4) == volume.Data[5]);
             Assert.That((110.0 / 4) == volume.Data[6]);
             Assert.That((118.0 / 4) == volume.Data[7]);
+
+            originalVolume = new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3));
+            volume = Processing.AveragePool(originalVolume, 3);
+            Assert.That(1 == volume.Size.X);
+            Assert.That(1 == volume.Size.Y);
+            Assert.That(3 == volume.Size.Z);
+            Assert.That(5 == volume.Data[0]);
+            Assert.That(14 == volume.Data[1]);
+            Assert.That(23 == volume.Data[2]);
         }
 
         [Test]

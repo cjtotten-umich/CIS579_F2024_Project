@@ -4,10 +4,26 @@
 
     public class MaxPoolingLayer : Layer
     {
-        public MaxPoolingLayer(VolumeSize inputVolumeSize)
+        public int PoolSize { get; set; }
+
+        public MaxPoolingLayer(VolumeSize inputVolumeSize, int poolSize)
         {
+            int remainder;
+            Math.DivRem(inputVolumeSize.X, poolSize, out remainder);
+            if (remainder != 0)
+            {
+                throw new ArgumentException("Volume X size not divisible by pool size");
+            }
+
+            Math.DivRem(inputVolumeSize.Y, poolSize, out remainder);
+            if (remainder != 0)
+            {
+                throw new ArgumentException("Volume Y size not divisible by pool size");
+            }
+
             InputVolumeSize = inputVolumeSize;
-            OutputVolumeSize = new VolumeSize(inputVolumeSize.X / 2, inputVolumeSize.Y / 2, inputVolumeSize.Z);
+            OutputVolumeSize = new VolumeSize(inputVolumeSize.X / poolSize, inputVolumeSize.Y / poolSize, inputVolumeSize.Z);
+            PoolSize = poolSize;
         }
 
         public override Volume Process(Volume volume)
@@ -17,7 +33,7 @@
                 throw new ArgumentException("Input volume is the wrong size");
             }
 
-            return Processing.MaxPool(volume);
+            return Processing.MaxPool(volume, PoolSize);
         }
 
         public override Volume BackPropegate(Volume volume, Volume error)
@@ -32,7 +48,7 @@
                 throw new ArgumentException("Invalid error size to back propegate");
             }
 
-            return Processing.MaxPool_Backward(volume, error);
+            return Processing.MaxPool_Backward(volume, error, PoolSize);
         }
 
         public override string ToString()
