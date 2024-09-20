@@ -1,5 +1,6 @@
 ﻿namespace NeuralNetwork
 {
+    using ILGPU.Runtime.Cuda;
     using System;
     using System.Collections.Generic;
 
@@ -30,23 +31,22 @@
                 throw new FormatException("Input volume is the wrong size");
             }
 
-            var data = new double[volume.Size.X * volume.Size.Y * Filters.Count];
-            var offset = 0;
+            var outputVolume = Volume.MakeEmpty(new VolumeSize(OutputVolumeSize.X, OutputVolumeSize.Y, 0));
             for (int i = 0; i < Filters.Count; i++)
             {
                 var result = Processing.ConvolveWithBias(volume, Filters[i], Bias[i]);
-                Buffer.BlockCopy(result.Data, 0, data, offset, result.Data.Length);
-                offset += result.Data.Length;
+                outputVolume = outputVolume.Append(result);
             }
 
-            return new Volume(data, new VolumeSize(volume.Size.X, volume.Size.Y, Filters.Count));
+            return outputVolume;
         }
 
-        public override Volume BackPropegate(Volume volume, Volume error)
+        public override Volume BackPropegate(Volume volume, Volume error, bool verbose)
         {
-            // update filters, should just be convolution of filter with error volume layer
-
-            // update bias
+            if (verbose)
+            {
+                Console.WriteLine(this + " - BACKPROP");
+            }
 
             if (!volume.Size.Equals(InputVolumeSize))
             {
@@ -58,20 +58,48 @@
                 throw new ArgumentException("Invalid error size to back propegate");
             }
 
-            var data = new double[volume.Size.X * volume.Size.Y * Filters.Count];
-            var offset = 0;
+            // get result to propegate to previous layer
+            var result = Volume.MakeZero(InputVolumeSize);
             for (int i = 0; i < Filters.Count; i++)
             {
-                var updatedBias = 0.0;
-                Volume updatedFilter;
-                var result = Processing.Convolve_Backward(volume, Filters[i], error, Bias[i], out updatedFilter, out updatedBias);
-                Bias[i] = updatedBias;
-                Filters[i] = updatedFilter;
-                Buffer.BlockCopy(result.Data, 0, data, offset, result.Data.Length);
-                offset += result.Data.Length;
+                var filter = Filters[i];
+                var errorSlice = error.Slice(i);
+                var paddedErrorLayer = errorSlice.Pad(filter.Size.X + 1);
+
+                var currentError = Volume.MakeEmpty(new VolumeSize(InputVolumeSize.X, InputVolumeSize.Y, 0));
+                for (int j = 0; j < filter.Size.Z; j++)
+                {
+                    var filterSlice = filter.Slice(j);
+                    var errorLayer = Processing.Convolve_Valid(paddedErrorLayer, filterSlice.Flip());
+                    currentError = currentError.Append(errorLayer);
+                }
+
+                result += currentError;
             }
 
-            return new Volume(data, new VolumeSize(volume.Size.X, volume.Size.Y, Filters.Count));
+            // update filter based on gradient of error wrt input
+            for (int i = 0; i < Filters.Count; i++)
+            {
+                var filter = Filters[i];
+                var errorSlice = error.Slice(i);
+                var gradient = Volume.MakeEmpty(new VolumeSize(filter.Size.X, filter.Size.Y, 0));
+                for (int j = 0; j < InputVolumeSize.Z; j++)
+                {
+                    var inputSlice = volume.Slice(j);
+                    var gradientSlice = Processing.Convolve_Valid(inputSlice, errorSlice);
+                    gradient = gradient.Append(gradientSlice);
+                }
+
+                Filters[i] -= gradient;
+
+                // update bias also based on this error layer
+                for (int j = 0; j < errorSlice.Size.TotalSize; j++)
+                {
+                    Bias[i] -= errorSlice.Data[j];
+                }
+            }
+
+            return result;
         }
 
         public override string ToString()

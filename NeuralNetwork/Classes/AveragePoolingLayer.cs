@@ -38,8 +38,13 @@ namespace NeuralNetwork
             return Processing.AveragePool(volume, PoolSize);
         }
 
-        public override Volume BackPropegate(Volume volume, Volume error)
+        public override Volume BackPropegate(Volume volume, Volume error, bool verbose)
         {
+            if (verbose)
+            {
+                Console.WriteLine(this + " - BACKPROP");
+            }
+
             if (!volume.Size.Equals(InputVolumeSize))
             {
                 throw new ArgumentException("Input volume is the wrong size");

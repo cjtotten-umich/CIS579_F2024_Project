@@ -10,11 +10,37 @@
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, int, int, ArrayView<double>, ArrayView<double>, int, int, ArrayView<double>> _kernel_ConvolveVolumeWithFilter_Backward;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, ArrayView<double>> _kernel_MaxPool_Backward;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, ArrayView<double>> _kernel_AveragePool_Backward;
-        static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>> _kernel_FullyConnected_Backward;
+        static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, double, ArrayView<double>> _kernel_FullyConnected_Backward;
+        static Action<Index1D, ArrayView<double>, int, int, ArrayView<double>, ArrayView<double>> _kernel_LayeredNormalization_Backward;
+        
+        static void Kernel_LayeredNormalization_Backward(Index1D index, ArrayView<double> volume, int x, int y, ArrayView<double> error, ArrayView<double> result)
+        {
+            var offset = index * x * y;
+            var average = 0.0;
+            for (int i = 0; i < x * y; i++)
+            {
+                average += volume[offset + i];
+            }
+
+            average /= x * y;
+
+            var variance = 0.0;
+            for (int i = 0; i < x * y; i++)
+            {
+                variance += Math.Pow(volume[offset + i] - average, 2);
+            }
+
+            variance /= x * y;
+            variance = Math.Sqrt(variance + 0.0000000001);
+
+            for (int i = 0; i < x * y; i++)
+            {
+                result[offset + i] = (error[offset + i] * variance) + average;
+            }
+        }
 
         static void Kernel_MaxPool_Backward(Index1D index, ArrayView<double> volume, int errorX, int errorY, int errorZ, ArrayView<double> error, int poolSize, ArrayView<double> result)
         {
-
             var indexX = index % errorX;
             var indexY = index / errorX;
             for (int z = 0; z < errorZ; z++)
@@ -41,6 +67,10 @@
                         {
                             result[offset] = error[index + (z * errorX * errorY)];
                         }
+                        else
+                        {
+                            result[offset] = 0;
+                        }
                     }
                 }
             }
@@ -52,44 +82,31 @@
             var indexY = index / errorX;
             for (int z = 0; z < errorZ; z++)
             {
-                double sum = 0;
                 for (int y = 0; y < poolSize; y++)
                 {
                     for (int x = 0; x < poolSize; x++)
                     {
                         var offset = x + (indexX * poolSize) + (((indexY * poolSize) + y) * (errorX * poolSize)) + (z * (errorX * poolSize) * (errorY * poolSize));
-                        sum += volume[offset];
-                    }
-                }
-
-                for (int y = 0; y < poolSize; y++)
-                {
-                    for (int x = 0; x < poolSize; x++)
-                    {
-                        var offset = x + (indexX * poolSize) + (((indexY * poolSize) + y) * (errorX * poolSize)) + (z * (errorX * poolSize) * (errorY * poolSize));
-                        var proportion = (volume[offset] / sum);
-                        result[offset] = proportion * error[index + (z * errorX * errorY)];
+                        result[offset] = error[index + (z * errorX * errorY)] / (poolSize * poolSize);
                     }
                 }
             }
         }
 
-        static void Kernel_FullyConnected_Backward(Index1D index, ArrayView<double> volume, ArrayView<double> weights, ArrayView<double> bias, ArrayView<double> error, ArrayView<double> result)
+        static void Kernel_FullyConnected_Backward(Index1D index, ArrayView<double> volume, ArrayView<double> weights, ArrayView<double> bias, ArrayView<double> error, double learningRate, ArrayView<double> result)
         {
             var weightOffset = volume.Length * index;
-            bias[index] -= error[index];
+            bias[index] -= (learningRate * error[index]);
             for (int i = 0; i < volume.Length; i++)
             {
                 result[i] = weights[weightOffset + i] * error[index];
-                weights[weightOffset + i] -= volume[i] * error[index];
+                weights[weightOffset + i] -= volume[i] * (learningRate * error[index]);
             }
         }
 
         static void Kernel_ConvolveWithBias_Backward(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> filter, int filterX, int filterY, int filterZ, ArrayView<double> bias, ArrayView<double> error, int errorX, int errorY, ArrayView<double> result)
         {
             bias[0] -= error[index];
-
-            Convolve(index, volume, error, x, y, z, errorX, errorY, z, result);
         }
 
         public static Volume MaxPool_Backward(Volume volume, Volume error, int poolSize)
@@ -114,7 +131,7 @@
             return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
         }
 
-        public static Volume Convolve_Backward(Volume volume, Volume filter, Volume error, double bias, out Volume updatedFilter, out double updatedBias)
+        public static Volume ConvolveWithBias_Backward(Volume volume, Volume filter, Volume error, double bias, out Volume updatedFilter, out double updatedBias)
         {
             var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
             var filterBuffer = _accelerator.Allocate1D<double>(filter.Data.Length);
@@ -131,7 +148,21 @@
             return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
         }
 
-        public static Volume FullyConnected_Backward(Volume volume, Volume weights, Volume bias, Volume error, out Volume updatedBias, out Volume updatedWeights)
+        public static Volume Convolve_Valid(Volume v1, Volume v2)
+        {
+            var v1Buffer = _accelerator.Allocate1D<double>(v1.Data.Length);
+            var v2Buffer = _accelerator.Allocate1D<double>(v2.Data.Length);
+            v1Buffer.CopyFromCPU(v1.Data);
+            v2Buffer.CopyFromCPU(v2.Data);
+            int resultX = v1.Size.X - v2.Size.X + 1;
+            int resultY = v1.Size.Y - v2.Size.Y + 1;
+            var resultBuffer = _accelerator.Allocate1D<double>(resultX * resultY);
+            _kernel_ConvolveValid(resultX * resultY, v1Buffer.View, v2Buffer.View, v1.Size.X, v1.Size.Y, v1.Size.Z, v2.Size.X, v2.Size.Y, v2.Size.Z, resultBuffer.View);
+            var gradient = new Volume(resultBuffer.GetAsArray1D(), new VolumeSize(resultX, resultY, 1));
+            return gradient;
+        }
+
+        public static Volume FullyConnected_Backward(Volume volume, Volume weights, Volume bias, Volume error, double learningRate, out Volume updatedBias, out Volume updatedWeights)
         {
             var neurons = weights.Size.TotalSize / volume.Size.TotalSize;
             var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
@@ -143,12 +174,28 @@
             biasBuffer.CopyFromCPU(bias.Data);
             errorBuffer.CopyFromCPU(error.Data);
             var resultBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
-            _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, resultBuffer.View);
+            _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, learningRate, resultBuffer.View);
             updatedBias = new Volume(biasBuffer.GetAsArray1D(), bias.Size);
             updatedWeights = new Volume(weightBuffer.GetAsArray1D(), weights.Size);
             bias.SetData(updatedBias.Data);
             weights.SetData(updatedWeights.Data);
             return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
+        }
+        public static Volume LayeredNormalization_Backward(Volume volume, Volume error)
+        {
+            using (var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length))
+            {
+                volumeBuffer.CopyFromCPU(volume.Data);
+                using (var errorBuffer = _accelerator.Allocate1D<double>(error.Data.Length))
+                {
+                    errorBuffer.CopyFromCPU(error.Data);
+                    using (var resultBuffer = _accelerator.Allocate1D<double>(volume.Data.Length))
+                    {
+                        _kernel_LayeredNormalization_Backward(volume.Size.Z, volumeBuffer.View, volume.Size.X, volume.Size.Y, errorBuffer.View, resultBuffer.View);
+                        return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
+                    }
+                }
+            }
         }
     }
 }

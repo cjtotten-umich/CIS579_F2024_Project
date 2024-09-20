@@ -6,20 +6,24 @@ namespace NeuralNetwork
     {
         public abstract Volume Process(Volume volume);
 
-        public abstract Volume BackPropegate(Volume volume, Volume error);
+        public abstract Volume BackPropegate(Volume volume, Volume error, bool verbose);
 
-        public Volume Train(Volume volume, Volume truth)
+        public Volume Train(Volume volume, Volume truth, bool verbose)
         {
             var result = Process(volume);
 
-            Console.WriteLine(this + " - TRAINING");
-            if (NextLayer == null)
+            if (verbose)
             {
-                return BackPropegate(volume, Processing.ComponentError(result, truth));
+                Console.WriteLine(this + " - TRAINING");
             }
 
-            var error = NextLayer.Train(result, truth);
-            return BackPropegate(volume, error);
+            if (NextLayer == null)
+            {
+                return BackPropegate(volume, Processing.ComponentError(result, truth), verbose);
+            }
+
+            var error = NextLayer.Train(result, truth, verbose);
+            return BackPropegate(volume, error, verbose);
         }
 
         public Layer NextLayer { get; set; }

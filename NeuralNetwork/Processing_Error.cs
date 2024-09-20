@@ -27,7 +27,7 @@
                 throw new ArgumentException("Mismatched size of values vs expected");
             }
 
-            return expected - volume;
+            return volume - expected;
         }
     }
 }

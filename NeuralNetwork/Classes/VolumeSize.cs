@@ -20,9 +20,9 @@ namespace NeuralNetwork
 
         public VolumeSize(int x, int y, int z)
         {
-            if (x == 0 || y == 0 || z == 0)
+            if (x == 0 || y == 0 )
             {
-                throw new ArgumentException("You can't have a volume with 0 length in any dimension");
+                throw new ArgumentException("You can't have a volume with 0 length in X or Y dimensions");
             }
 
             X = x;

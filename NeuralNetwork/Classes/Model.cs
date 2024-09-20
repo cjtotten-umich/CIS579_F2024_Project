@@ -42,18 +42,17 @@
 
             var resizedImage = new Bitmap(image, ImageWidth, ImageHeight);
             var volume = Processing.ImageToVolume(resizedImage);
-            var currentVolume = volume;
             var currentLayer = FirstLayer;
             while (currentLayer.NextLayer != null)
             {
-                currentVolume = currentLayer.Process(currentVolume);
+                volume = currentLayer.Process(volume);
                 currentLayer = currentLayer.NextLayer;
             }
 
-            return currentLayer.Process(currentVolume);
+            return currentLayer.Process(volume);
         }
 
-        public void Train(Bitmap image, Volume truth)
+        public void Train(Bitmap image, Volume truth, bool verbose)
         {
             if (!IsBuilt)
             {
@@ -62,7 +61,7 @@
 
             var resizedImage = new Bitmap(image, ImageWidth, ImageHeight);
             var volume = Processing.ImageToVolume(resizedImage);
-            FirstLayer.Train(volume, truth);
+            FirstLayer.Train(volume, truth, verbose);
         }
 
         public void AddLayer(Layer layer)

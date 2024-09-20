@@ -4,6 +4,9 @@ using ILGPU.IR.Values;
 using System;
 using System.Drawing;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace NeuralNetwork
@@ -36,7 +39,7 @@ namespace NeuralNetwork
             var data = new double[size.TotalSize];
             for (int i = 0; i < data.Length; i++)
             {
-                data[i] = (double)random.NextDouble();
+                data[i] = random.NextDouble();
             }
 
             return new Volume(data, size);
@@ -47,6 +50,16 @@ namespace NeuralNetwork
             var random = new Random();
             var data = new double[size.TotalSize];
             return new Volume(data, size);
+        }
+
+        public static Volume MakeEmpty(VolumeSize size)
+        {
+            if (size.Z != 0)
+            {
+                throw new ArgumentException("Empty volume must have Z = 0");
+            }
+
+            return new Volume(new double[0], size);
         }
 
         public static Volume operator +(Volume a, Volume b)
@@ -93,6 +106,37 @@ namespace NeuralNetwork
             }
 
             return new Volume(data, a.Size);
+        }
+
+        public Volume Slice(int depth)
+        {
+            var layerSize = Size.X * Size.Y;
+            var offset = layerSize * depth;
+            var data = new double[layerSize];
+            Buffer.BlockCopy(Data, offset * sizeof(double), data, 0, layerSize * sizeof(double));
+            return new Volume(data, new VolumeSize(Size.X, Size.Y, 1));
+        }
+
+        public Volume Append(Volume other)
+        {
+            if (Size.X != other.Size.X ||  Size.Y != other.Size.Y)
+            {
+                throw new ArgumentException("Size mismatch, can't append different size volumes");
+            }
+            var data = new double[Size.TotalSize + other.Size.TotalSize];
+            Buffer.BlockCopy(Data, 0, data, 0, Size.TotalSize * sizeof(double));
+            Buffer.BlockCopy(other.Data, 0, data, Size.TotalSize * sizeof(double), other.Size.TotalSize * sizeof(double));
+            return new Volume(data, new VolumeSize(Size.X, Size.Y, Size.Z + other.Size.Z));
+        }
+
+        public Volume Flip()
+        {
+            return Processing.VolumeFlip(this);
+        }
+
+        public Volume Pad(int padSize)
+        {
+            return Processing.VolumePad(this, padSize);
         }
     }
 }

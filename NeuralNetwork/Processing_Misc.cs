@@ -12,6 +12,9 @@
 
         static Action<Index1D, ArrayView<byte>, int, int, ArrayView<double>> _kernel_24BPP_RGB_ImageToVolume;
         static Action<Index1D, ArrayView<byte>, int, int, ArrayView<double>> _kernel_32BPP_ARGB_ImageToVolume;
+        static Action<Index1D, ArrayView<double>, ArrayView<double>, int, int, int, int, int, int, ArrayView<double>> _kernel_ConvolveValid;
+        static Action<Index1D, ArrayView<double>, int, int, int, int, ArrayView<double>> _kernel_VolumePad;
+        static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>> _kernel_VolumeFlip;
 
         static void Kernel_24BPP_RGB_ImageToVolume(Index1D index, ArrayView<byte> image, int x, int y, ArrayView<double> volume)
         {
@@ -35,23 +38,31 @@
             if (bitmap.PixelFormat == PixelFormat.Format24bppRgb)
             {
                 var bytes = GetBytesFromBitmap(bitmap);
-                var imageBuffer = _accelerator.Allocate1D<byte>(bytes.Length);
-                var resultBuffer = _accelerator.Allocate1D<double>(bytes.Length);
-                imageBuffer.CopyFromCPU(bytes);
-                _kernel_24BPP_RGB_ImageToVolume(bitmap.Width * bitmap.Height, imageBuffer.View, bitmap.Width, bitmap.Height, resultBuffer.View);
-                var result = resultBuffer.GetAsArray1D();
-                return new Volume(result, new VolumeSize(bitmap.Width, bitmap.Height, 3));
+                using (var imageBuffer = _accelerator.Allocate1D<byte>(bytes.Length))
+                {
+                    imageBuffer.CopyFromCPU(bytes);
+                    using (var resultBuffer = _accelerator.Allocate1D<double>(bytes.Length))
+                    {
+                        _kernel_24BPP_RGB_ImageToVolume(bitmap.Width * bitmap.Height, imageBuffer.View, bitmap.Width, bitmap.Height, resultBuffer.View);
+                        var result = resultBuffer.GetAsArray1D();
+                        return new Volume(result, new VolumeSize(bitmap.Width, bitmap.Height, 3));
+                    }
+                }
             }
 
             if (bitmap.PixelFormat == PixelFormat.Format32bppArgb)
             {
                 var bytes = GetBytesFromBitmap(bitmap);
-                var imageBuffer = _accelerator.Allocate1D<byte>(bytes.Length);
-                var resultBuffer = _accelerator.Allocate1D<double>(bytes.Length);
-                imageBuffer.CopyFromCPU(bytes);
-                _kernel_32BPP_ARGB_ImageToVolume(bitmap.Width * bitmap.Height, imageBuffer.View, bitmap.Width, bitmap.Height, resultBuffer.View);
-                var result = resultBuffer.GetAsArray1D();
-                return new Volume(result, new VolumeSize(bitmap.Width, bitmap.Height, 4));
+                using (var imageBuffer = _accelerator.Allocate1D<byte>(bytes.Length))
+                {
+                    using (var resultBuffer = _accelerator.Allocate1D<double>(bytes.Length))
+                    {
+                        imageBuffer.CopyFromCPU(bytes);
+                        _kernel_32BPP_ARGB_ImageToVolume(bitmap.Width * bitmap.Height, imageBuffer.View, bitmap.Width, bitmap.Height, resultBuffer.View);
+                        var result = resultBuffer.GetAsArray1D();
+                        return new Volume(result, new VolumeSize(bitmap.Width, bitmap.Height, 4));
+                    }
+                }
             }
 
             throw new ArgumentException("New Pixel Format");
@@ -105,7 +116,9 @@
             return data;
         }
 
-        static void Convolve(Index1D index, ArrayView<double> m1, ArrayView<double> m2, int m1x, int m1y, int m1z, int m2x, int m2y, int m2z, ArrayView<double> result)
+
+
+        static void Kernel_ConvolveValid(Index1D index, ArrayView<double> m1, ArrayView<double> m2, int m1x, int m1y, int m1z, int m2x, int m2y, int m2z, ArrayView<double> result)
         {
             int x = index % (m1x - m2x + 1);
             int y = index / (m1x - m2x + 1);
@@ -127,8 +140,75 @@
             result[index] = sum;
         }
 
+        static void Kernel_VolumePad(Index1D index, ArrayView<double> v, int x, int y, int z, int pad, ArrayView<double> result)
+        {
+            var halfPad = pad / 2;
+            for (int zPosition = 0; zPosition < z; zPosition++)
+            {
+                var xPosition = index % x;
+                var yPosition = index / x;
+
+                var newX = xPosition + halfPad;
+                var newY = yPosition + halfPad;
+
+                var newIndex = newY * (x + pad) + newX;
+                result[newIndex + (zPosition * (x + pad) * (y + pad))] = v[index + (zPosition * x * y)];
+            }
+        }
+
+        static void Kernel_VolumeFlip(Index1D index, ArrayView<double> v, int x, int y, int z, ArrayView<double> result)
+        {
+
+            for (int zPosition = 0; zPosition < z; zPosition++)
+            {
+                var yPosition = index / x;
+                var xPosition = index % x;
+
+                var flippedX = x - 1 - xPosition;
+                var flippedY = y - 1 - yPosition;
+
+                var flippedIndex = flippedY * x + flippedX;
+
+                result[flippedIndex + (zPosition * x * y)] = v[index + (zPosition * x * y)];
+            }
+        }
+
+        public static Volume VolumeFlip(Volume v)
+        {
+            using (var volumeBuffer = _accelerator.Allocate1D<double>(v.Size.TotalSize))
+            {
+                volumeBuffer.CopyFromCPU(v.Data);
+                using (var resultBuffer = _accelerator.Allocate1D<double>(v.Size.TotalSize))
+                {
+                    _kernel_VolumeFlip(v.Size.X * v.Size.Y, volumeBuffer.View, v.Size.X, v.Size.Y, v.Size.Z, resultBuffer.View);
+                    var result = resultBuffer.GetAsArray1D();
+                    return new Volume(result, v.Size);
+                }
+            }
+        }
+
+        public static Volume VolumePad(Volume v, int padSize)
+        {
+            using (var volumeBuffer = _accelerator.Allocate1D<double>(v.Size.TotalSize))
+            {
+                volumeBuffer.CopyFromCPU(v.Data);
+                using (var resultBuffer = _accelerator.Allocate1D<double>((v.Size.X + padSize) * (v.Size.Y + padSize) * v.Size.Z))
+                {
+                    resultBuffer.CopyFromCPU(new double[resultBuffer.Length]);
+                    _kernel_VolumePad(v.Size.X * v.Size.Y, volumeBuffer.View, v.Size.X, v.Size.Y, v.Size.Z, padSize, resultBuffer.View);
+                    var result = resultBuffer.GetAsArray1D();
+                    return new Volume(result, new VolumeSize(v.Size.X + padSize, v.Size.Y + padSize, v.Size.Z));
+                }
+            }
+        }
+
         public static Tuple<double, double, double> Adam(double previousMomentum, double previousVariance, int trainingStep, double gradient)
         {
+            if (trainingStep  <=  0)
+            {
+                throw new ArgumentOutOfRangeException("Training step must be positive integer");
+            }
+
             var momentumDecay = 0.9;
             var varianceDecay = 0.999;
             var trainingRate = 0.001;
@@ -140,7 +220,7 @@
             var m = momentum / (1.0 - Math.Pow(momentumDecay, trainingStep));
             var v = variance / (1.0 - Math.Pow(varianceDecay, trainingStep));
 
-            var d = (trainingRate * m) / (Math.Sqrt(v + epsilon));
+            var d = (trainingRate * m) / (Math.Sqrt(v) + epsilon);
             return Tuple.Create(momentum, variance, d);
         }
     }

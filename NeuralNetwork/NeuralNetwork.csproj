@@ -86,6 +86,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Classes\AveragePoolingLayer.cs" />
+    <Compile Include="Classes\AdamLayer.cs" />
+    <Compile Include="Classes\LayeredNormalizationLayer.cs" />
     <Compile Include="Classes\ConvolutionLayer.cs" />
     <Compile Include="Classes\FullyConnectedLayer.cs" />
     <Compile Include="Classes\Layer.cs" />
@@ -93,6 +95,7 @@
     <Compile Include="Classes\Model.cs" />
     <Compile Include="Classes\ReluActivationLayer.cs" />
     <Compile Include="Classes\SigmoidActivationLayer.cs" />
+    <Compile Include="Classes\TrainingItem.cs" />
     <Compile Include="Classes\Volume.cs" />
     <Compile Include="Classes\VolumeSize.cs" />
     <Compile Include="Processing.cs" />

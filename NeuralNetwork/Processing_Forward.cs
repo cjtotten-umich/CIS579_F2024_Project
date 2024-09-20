@@ -5,6 +5,8 @@ using System.Drawing.Imaging;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System;
+using System.Linq;
+using ILGPU.IR.Analyses;
 
 namespace NeuralNetwork
 {
@@ -14,6 +16,33 @@ namespace NeuralNetwork
         static Action<Index1D, ArrayView<double>, int, int, int, int, ArrayView<double>> _kernel_MaxPool;
         static Action<Index1D, ArrayView<double>, int, int, int, int, ArrayView<double>> _kernel_AveragePool;
         static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>> _kernel_FullyConnected;
+        static Action<Index1D, ArrayView<double>, int, int, ArrayView<double>> _kernel_LayeredNormalization;
+       
+        static void Kernel_LayeredNormalization(Index1D index, ArrayView<double> volume, int x, int y, ArrayView<double> result)
+        {
+            var offset = index * x * y;
+            var average = 0.0;
+            for (int i = 0; i < x * y; i++)
+            {
+                average += volume[offset + i];
+            }
+
+            average /= x * y;
+
+            var variance = 0.0;
+            for (int i = 0; i < x * y; i++)
+            {
+                variance += Math.Pow(volume[offset + i] - average, 2) ;
+            }
+
+            variance /= x * y;
+            variance = Math.Sqrt(variance + 0.0000000001);
+
+            for (int i = 0; i < x * y; i++)
+            {
+                result[offset + i] = (volume[offset + i] - average)/ variance;
+            }
+        }
 
         static void Kernel_MaxPool(Index1D index, ArrayView<double> volume, int outputX, int outputY, int outputZ, int poolSize, ArrayView<double> result)
         {
@@ -71,11 +100,9 @@ namespace NeuralNetwork
         }
         static void Kernel_ConvolveWithBias(Index1D index, ArrayView<double> volume, int x, int y, int z, ArrayView<double> filter, int filterX, int filterY, int filterZ, double bias, ArrayView<double> result)
         {
-            Convolve(index.X, volume, filter, x, y, z, filterX, filterY, filterZ, result);
+            Kernel_ConvolveValid(index.X, volume, filter, x, y, z, filterX, filterY, filterZ, result);
             result[index] += bias;
         }
-
-
 
         public static Volume ConvolveWithBias(Volume volume, Volume filter, double bias)
         {
@@ -125,5 +152,17 @@ namespace NeuralNetwork
             return new Volume(resultBuffer.GetAsArray1D(), new VolumeSize(neurons, 1, 1));
         }
 
+        public static Volume LayeredNormalization(Volume volume)
+        {
+            using (var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length))
+            {
+                volumeBuffer.CopyFromCPU(volume.Data);
+                using (var resultBuffer = _accelerator.Allocate1D<double>(volume.Data.Length))
+                {
+                    _kernel_LayeredNormalization(volume.Size.Z, volumeBuffer.View, volume.Size.X, volume.Size.Y, resultBuffer.View);
+                    return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
+                }
+            }
+        }
     }
 }

@@ -2,9 +2,9 @@
 
 namespace NeuralNetwork
 {
-    public class SigmoidActivationLayer : Layer
+    public class LayeredNormalizationLayer : Layer
     {
-        public SigmoidActivationLayer(VolumeSize inputVolumeSize)
+        public LayeredNormalizationLayer(VolumeSize inputVolumeSize)
         {
             InputVolumeSize = inputVolumeSize;
             OutputVolumeSize = inputVolumeSize;
@@ -22,12 +22,12 @@ namespace NeuralNetwork
                 throw new ArgumentException("Input volume is the wrong size");
             }
 
-            if (!error.Size.Equals(OutputVolumeSize))
+            if (!error.Size.Equals(InputVolumeSize))
             {
-                throw new ArgumentException("Invalid error size to back propegate");
+                throw new ArgumentException("Error volume is the wrong size");
             }
 
-            return Processing.Sigmoid_Backward(volume, error);
+            return Processing.LayeredNormalization_Backward(volume, error);
         }
 
         public override Volume Process(Volume volume)
@@ -37,12 +37,12 @@ namespace NeuralNetwork
                 throw new ArgumentException("Input volume is the wrong size");
             }
 
-            return Processing.Sigmoid(volume);
+            return Processing.LayeredNormalization(volume);
         }
 
         public override string ToString()
         {
-            return "SIG " + InputVolumeSize + "-" + OutputVolumeSize;
+            return "NORM " + InputVolumeSize + "-" + OutputVolumeSize;
         }
     }
 }
