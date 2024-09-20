@@ -99,7 +99,7 @@
             bias[index] -= (learningRate * error[index]);
             for (int i = 0; i < volume.Length; i++)
             {
-                result[i] = weights[weightOffset + i] * error[index];
+                result[i] += weights[weightOffset + i] * error[index];
                 weights[weightOffset + i] -= volume[i] * (learningRate * error[index]);
             }
         }
@@ -174,6 +174,7 @@
             biasBuffer.CopyFromCPU(bias.Data);
             errorBuffer.CopyFromCPU(error.Data);
             var resultBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
+            resultBuffer.CopyFromCPU(new double[volume.Data.Length]);
             _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, learningRate, resultBuffer.View);
             updatedBias = new Volume(biasBuffer.GetAsArray1D(), bias.Size);
             updatedWeights = new Volume(weightBuffer.GetAsArray1D(), weights.Size);
@@ -181,6 +182,7 @@
             weights.SetData(updatedWeights.Data);
             return new Volume(resultBuffer.GetAsArray1D(), volume.Size);
         }
+
         public static Volume LayeredNormalization_Backward(Volume volume, Volume error)
         {
             using (var volumeBuffer = _accelerator.Allocate1D<double>(volume.Data.Length))

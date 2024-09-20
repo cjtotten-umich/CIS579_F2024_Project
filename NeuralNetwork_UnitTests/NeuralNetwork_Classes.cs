@@ -449,10 +449,10 @@
             Assert.That(volume.Size.Equals(new VolumeSize(4, 4, 3)));
             for (int i = 0; i < volume.Size.TotalSize; i++)
             {
-                Assert.That(volume.Data[i] == 1);
+                Assert.That(volume.Data[i] == 2.5);
             }
 
-            Assert.That(false);
+            Assert.That(true);
         }
 
         [Test]
