@@ -13,8 +13,8 @@
         static Processing()
         {
             _context = Context.Create(b => b.Default().EnableAlgorithms());
-            //_accelerator = _context.CreateCudaAccelerator(0);
-            _accelerator = _context.CreateCPUAccelerator(0);
+            _accelerator = _context.CreateCudaAccelerator(0);
+            //_accelerator = _context.CreateCPUAccelerator(0);
 
             _kernel_24BPP_RGB_ImageToVolume = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<byte>, int, int, ArrayView<double>>(Kernel_24BPP_RGB_ImageToVolume);
             _kernel_32BPP_ARGB_ImageToVolume = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<byte>, int, int, ArrayView<double>>(Kernel_32BPP_ARGB_ImageToVolume);
@@ -26,7 +26,8 @@
             _kernel_ConvolveVolumeWithFilter_Backward = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, int, int, ArrayView<double>, ArrayView<double>, int, int, ArrayView<double>>(Kernel_ConvolveWithBias_Backward);
             
             _kernel_FullyConnected = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>>(Kernel_FullyConnected);
-            _kernel_FullyConnected_Backward = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, double, ArrayView<double>>(Kernel_FullyConnected_Backward);
+            _kernel_FullyConnected_Backward = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, double>(Kernel_FullyConnected_Backward);
+            _kernel_FullyConnected_Backward_InputGradient = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, int, int, int, ArrayView<double>>(Kernel_FullyConnected_Backward_InputGradient);
 
             _kernel_Sigmoid = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>>(Kernel_Sigmoid);
             _kernel_Sigmoid_Backward = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>>(Kernel_Sigmoid_Backward);

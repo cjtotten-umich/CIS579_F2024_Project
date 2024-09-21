@@ -458,12 +458,70 @@
         [Test]
         public void ConvolutionLayer_BackPropegate()
         {
-            var layer = new ConvolutionLayer(2, 3, new VolumeSize(4, 4, 2));
+            var layer = new ConvolutionLayer(2, 3, 0.01, new VolumeSize(4, 4, 2));
+            for (int i = 0; i < layer.Filters.Count; i++)
+            {
+                for (int j = 0; j < layer.Filters[i].Data.Length; j++)
+                {
+                    layer.Filters[i].Data[j] = 0.5;
+                }
+            }
+
             var error = new Volume(TestData.TestData_2_2_2, new VolumeSize(2, 2, 2));
             var volume = layer.BackPropegate(new Volume(TestData.TestData_4_4_2, new VolumeSize(4, 4, 2)), error, false);
 
-            Assert.That(false);
-            // I have no idea how to test this right now
+            int index = 0;
+            Assert.That(3 == volume.Data[index++]);
+            Assert.That(7 == volume.Data[index++]);
+            Assert.That(7 == volume.Data[index++]);
+            Assert.That(4 == volume.Data[index++]);
+            Assert.That(8 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(10 == volume.Data[index++]);
+            Assert.That(8 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(10 == volume.Data[index++]);
+            Assert.That(5 == volume.Data[index++]);
+            Assert.That(11 == volume.Data[index++]);
+            Assert.That(11 == volume.Data[index++]);
+            Assert.That(6 == volume.Data[index++]);
+
+            Assert.That(3 == volume.Data[index++]);
+            Assert.That(7 == volume.Data[index++]);
+            Assert.That(7 == volume.Data[index++]);
+            Assert.That(4 == volume.Data[index++]);
+            Assert.That(8 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(10 == volume.Data[index++]);
+            Assert.That(8 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(18 == volume.Data[index++]);
+            Assert.That(10 == volume.Data[index++]);
+            Assert.That(5 == volume.Data[index++]);
+            Assert.That(11 == volume.Data[index++]);
+            Assert.That(11 == volume.Data[index++]);
+            Assert.That(6 == volume.Data[index++]);
+
+            var filter = new double[][]{
+            new double[] { 0.06, -0.04, -0.14, -0.34, -0.44, -0.54, -0.74, -0.84, -0.94, -1.54, -1.64, -1.74, -1.94, -2.04, -2.14, -2.34, -2.44, -2.54 },
+            new double[] { -0.5, -0.76, -1.02, -1.54, -1.8, -2.06, -2.58, -2.84, -3.1, -4.66, -4.92, -5.18, -5.7, -5.96, -6.22, -6.74, -7, -7.26 } };
+           
+
+            for (int i = 0; i < layer.Filters.Count; i++)
+            {
+                for (int j = 0; j < layer.Filters[i].Data.Length; j++)
+                {
+                    Assert.That(TestData.AboutEqual(filter[i][j], layer.Filters[i].Data[j]));
+                }
+            }
+
+            Assert.That(TestData.AboutEqual(-0.1, layer.Bias[0]));
+            Assert.That(TestData.AboutEqual(-0.26, layer.Bias[1]));
+
+            Assert.That(true);
         }
     }
 }

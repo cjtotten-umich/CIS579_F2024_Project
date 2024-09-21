@@ -1,12 +1,4 @@
-﻿using ILGPU.Algorithms.MatrixOperations;
-using ILGPU.IR;
-using ILGPU.IR.Values;
-using System;
-using System.Drawing;
-using System.Net.Http.Headers;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Security.Cryptography.X509Certificates;
+﻿using System;
 using System.Text;
 
 namespace NeuralNetwork
@@ -40,6 +32,30 @@ namespace NeuralNetwork
             for (int i = 0; i < data.Length; i++)
             {
                 data[i] = random.NextDouble();
+            }
+
+            return new Volume(data, size);
+        }
+
+        public static Volume MakeValue(VolumeSize size, double value)
+        {
+            var data = new double[size.TotalSize];
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = value;
+            }
+
+            return new Volume(data, size);
+        }
+
+        public static Volume MakeHeUniform(VolumeSize size)
+        {
+            var heSize = Math.Sqrt(6.0 / size.TotalSize);
+            var random = new Random();
+            var data = new double[size.TotalSize];
+            for (int i = 0; i < data.Length; i++)
+            {
+                data[i] = (random.NextDouble() * heSize * 2) - heSize;
             }
 
             return new Volume(data, size);
@@ -137,6 +153,25 @@ namespace NeuralNetwork
         public Volume Pad(int padSize)
         {
             return Processing.VolumePad(this, padSize);
+        }
+
+        public string StringVersion()
+        {
+            if (Data.Length < 10)
+            {
+                var s = new StringBuilder();
+                s.Append("(");
+                for (int i = 0; i < Data.Length; i++)
+                {
+                    s.Append(Data[i].ToString("N4") + ",");
+                }
+
+                s.Append(")");
+                return s.ToString();
+            }
+
+            return "Volume:" + Size.ToString();
+
         }
     }
 }

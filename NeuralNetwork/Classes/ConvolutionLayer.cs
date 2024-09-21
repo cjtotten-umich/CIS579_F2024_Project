@@ -8,20 +8,24 @@
     {
         public List<Volume> Filters { get; set; }
 
-        public List<double> Bias { get; set; }
+        public double[] Bias { get; set; }
 
-        public ConvolutionLayer(int numberOfFilters, int filterSize, VolumeSize inputVolumeSize)
+        public double LearningRate { get; set; }
+
+        public ConvolutionLayer(int numberOfFilters, int filterSize, double learningRate, VolumeSize inputVolumeSize)
         {
             InputVolumeSize = inputVolumeSize;
 
             Filters = new List<Volume>();
-            Bias = new List<double>(new double[numberOfFilters]);
+            Bias = new double[numberOfFilters];
             for (int i = 0; i < numberOfFilters; i++)
             {
-                Filters.Add(Volume.MakeRandom(new VolumeSize(filterSize, filterSize, inputVolumeSize.Z)));
+                //Filters.Add(Volume.MakeRandom(new VolumeSize(filterSize, filterSize, inputVolumeSize.Z)));
+                Filters.Add(Volume.MakeHeUniform(new VolumeSize(filterSize, filterSize, inputVolumeSize.Z)));
             }
 
             OutputVolumeSize = new VolumeSize(inputVolumeSize.X  - filterSize + 1, inputVolumeSize.Y - filterSize + 1, numberOfFilters);
+            LearningRate = learningRate;
         }
 
         public override Volume Process(Volume volume)
@@ -70,7 +74,8 @@
                 for (int j = 0; j < filter.Size.Z; j++)
                 {
                     var filterSlice = filter.Slice(j);
-                    var errorLayer = Processing.Convolve_Valid(paddedErrorLayer, filterSlice.Flip());
+                    var filterSliceFlip = filterSlice.Flip();
+                    var errorLayer = Processing.Convolve_Valid(paddedErrorLayer, filterSliceFlip);
                     currentError = currentError.Append(errorLayer);
                 }
 
@@ -90,12 +95,12 @@
                     gradient = gradient.Append(gradientSlice);
                 }
 
-                Filters[i] -= gradient;
+                Filters[i] -= gradient * LearningRate;
 
                 // update bias also based on this error layer
                 for (int j = 0; j < errorSlice.Size.TotalSize; j++)
                 {
-                    Bias[i] -= errorSlice.Data[j];
+                    Bias[i] -= errorSlice.Data[j] * LearningRate;
                 }
             }
 

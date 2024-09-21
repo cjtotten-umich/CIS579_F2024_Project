@@ -84,17 +84,20 @@ namespace NeuralNetwork_Console
             var learningRate = 0.01;
             var r = new Random();
             var model = new Model(512, 512);
-            model.AddLayer(new ConvolutionLayer(8, 3, new VolumeSize(512, 512, 4)));
+            model.AddLayer(new ConvolutionLayer(8, 3, 0.01, new VolumeSize(512, 512, 4)));
             model.AddLayer(new ReluActivationLayer(new VolumeSize(510, 510, 8)));
-            model.AddLayer(new MaxPoolingLayer(new VolumeSize(510, 510, 8), 3));
-            model.AddLayer(new ConvolutionLayer(8, 3, new VolumeSize(170, 170, 8)));
+            model.AddLayer(new AveragePoolingLayer(new VolumeSize(510, 510, 8), 3));
+            model.AddLayer(new ConvolutionLayer(8, 3, 0.01, new VolumeSize(170, 170, 8)));
             model.AddLayer(new ReluActivationLayer(new VolumeSize(168, 168, 8)));
-            model.AddLayer(new MaxPoolingLayer(new VolumeSize(168, 168, 8), 2));
-            model.AddLayer(new LayeredNormalizationLayer(new VolumeSize(84, 84, 8)));
-            model.AddLayer(new FullyConnectedLayer(50, learningRate, new VolumeSize(84, 84, 8)));
+            model.AddLayer(new AveragePoolingLayer(new VolumeSize(168, 168, 8), 2));
+            model.AddLayer(new ConvolutionLayer(8, 3, 0.01, new VolumeSize(84, 84, 8)));
+            model.AddLayer(new ReluActivationLayer(new VolumeSize(82, 82, 8)));
+            model.AddLayer(new AveragePoolingLayer(new VolumeSize(82, 82, 8), 2));
+            model.AddLayer(new FullyConnectedLayer(50, learningRate, new VolumeSize(41, 41, 8)));
+            model.AddLayer(new LayeredNormalizationLayer(new VolumeSize(50, 1, 1)));
             model.AddLayer(new FullyConnectedLayer(5, learningRate, new VolumeSize(50, 1, 1)));
             model.AddLayer(new SigmoidActivationLayer(new VolumeSize(5, 1, 1)));
-            model.AddLayer(new AdamLayer(new VolumeSize(5, 1, 1)));
+
             model.Build();
             
             // Train the model
@@ -105,7 +108,7 @@ namespace NeuralNetwork_Console
             {
                 var file = Path.GetFileNameWithoutExtension(p);
                 var directory = Path.GetDirectoryName(p);
-                var image = (Bitmap)System.Drawing.Image.FromFile(p);
+                var image = (Bitmap)Image.FromFile(p);
                 var data = File.ReadAllText(directory + "\\" + file + ".txt");
                 var truthString = data.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
                 var truth = Array.ConvertAll(truthString, double.Parse);
@@ -122,7 +125,7 @@ namespace NeuralNetwork_Console
                     model.Train(t.Image, t.Truth, false);
                     var result = model.Process(t.Image);
                     t.LastError = Processing.MeanSquareError(result, t.Truth);
-                    Console.WriteLine("AVERAGE ERROR: " + trainingItems.Average(a => a.LastError));
+                    Console.WriteLine("AVERAGE ERROR: " + trainingItems.Average(a => a.LastError) + " " + result.StringVersion());
                 }
             }
 
@@ -134,11 +137,11 @@ namespace NeuralNetwork_Console
             pathList.Sort((a, b) => a.CompareTo(b));
             foreach (var p in pathList)
             {
-                var image = (Bitmap)System.Drawing.Image.FromFile(p);
+                var image = (Bitmap)Image.FromFile(p);
                 var result = model.Process(image);
                 if (result.Data[0] > 0.25)
                 {
-                    Console.WriteLine(p + " - " + result.Data[0]);
+                    Console.WriteLine(p + " - " + result.StringVersion());
                 }
             }
 

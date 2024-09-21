@@ -10,7 +10,8 @@
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, int, int, ArrayView<double>, ArrayView<double>, int, int, ArrayView<double>> _kernel_ConvolveVolumeWithFilter_Backward;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, ArrayView<double>> _kernel_MaxPool_Backward;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>, int, ArrayView<double>> _kernel_AveragePool_Backward;
-        static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, double, ArrayView<double>> _kernel_FullyConnected_Backward;
+        static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>, double> _kernel_FullyConnected_Backward;
+        static Action<Index1D, ArrayView<double>, ArrayView<double>, int, int, int, ArrayView<double>> _kernel_FullyConnected_Backward_InputGradient;
         static Action<Index1D, ArrayView<double>, int, int, ArrayView<double>, ArrayView<double>> _kernel_LayeredNormalization_Backward;
         
         static void Kernel_LayeredNormalization_Backward(Index1D index, ArrayView<double> volume, int x, int y, ArrayView<double> error, ArrayView<double> result)
@@ -93,14 +94,21 @@
             }
         }
 
-        static void Kernel_FullyConnected_Backward(Index1D index, ArrayView<double> volume, ArrayView<double> weights, ArrayView<double> bias, ArrayView<double> error, double learningRate, ArrayView<double> result)
+        static void Kernel_FullyConnected_Backward(Index1D index, ArrayView<double> volume, ArrayView<double> weights, ArrayView<double> bias, ArrayView<double> error, double learningRate)
         {
             var weightOffset = volume.Length * index;
             bias[index] -= (learningRate * error[index]);
             for (int i = 0; i < volume.Length; i++)
             {
-                result[i] += weights[weightOffset + i] * error[index];
                 weights[weightOffset + i] -= volume[i] * (learningRate * error[index]);
+            }
+        }
+
+        static void Kernel_FullyConnected_Backward_InputGradient(Index1D index, ArrayView<double> weights, ArrayView<double> error, int neurons, int x, int y, ArrayView<double> result)
+        {
+            for (int i = 0; i < neurons; i++)
+            {
+                result[index] += weights[(x * y * i) + index] * error[i];
             }
         }
 
@@ -174,8 +182,8 @@
             biasBuffer.CopyFromCPU(bias.Data);
             errorBuffer.CopyFromCPU(error.Data);
             var resultBuffer = _accelerator.Allocate1D<double>(volume.Data.Length);
-            resultBuffer.CopyFromCPU(new double[volume.Data.Length]);
-            _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, learningRate, resultBuffer.View);
+            _kernel_FullyConnected_Backward_InputGradient(volume.Size.TotalSize, weightBuffer.View, errorBuffer.View, neurons, volume.Size.X, volume.Size.Y, resultBuffer.View);
+            _kernel_FullyConnected_Backward(neurons, volumeBuffer.View, weightBuffer.View, biasBuffer.View, errorBuffer.View, learningRate);
             updatedBias = new Volume(biasBuffer.GetAsArray1D(), bias.Size);
             updatedWeights = new Volume(weightBuffer.GetAsArray1D(), weights.Size);
             bias.SetData(updatedBias.Data);
