@@ -138,9 +138,9 @@ history = model.fit(
 )
 
 # Save the trained model
-model.save('sign_detection_bbox_model.h5')
+model.save('model.keras')
 
 # Evaluate the model on validation data
-val_loss, val_class_acc, val_bbox_mse = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
-print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")
-print(f"Validation Bounding Box MSE: {val_bbox_mse:.4f}")
+# val_loss, val_class_acc, val_bbox_mse = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
+# print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")
+# print(f"Validation Bounding Box MSE: {val_bbox_mse:.4f}")
