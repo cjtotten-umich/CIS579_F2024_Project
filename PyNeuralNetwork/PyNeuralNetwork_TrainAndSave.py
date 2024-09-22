@@ -49,10 +49,10 @@ def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
             yield X, (y_class, y_bbox)
 
 # Set up file paths for training and validation data
-train_image_dir = 'c:\\ECE579\\train\\images'
-train_annotations_file = 'c:\\ECE579\\train\\annotations.csv'
-val_image_dir = 'c:\\ECE579\\validation\\images'
-val_annotations_file = 'c:\\ECE579\\validation\\annotations.csv'
+train_image_dir = '..\\TrainingData\\images'
+train_annotations_file = '..\\TrainingData\\annotations.csv'
+val_image_dir = '..\\TrainingData\\images'
+val_annotations_file = '..\\TrainingData\\annotations.csv'
 
 # Build the CNN model for detecting signs and predicting bounding boxes
 input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3))
@@ -106,7 +106,7 @@ model.compile(optimizer=Adam(learning_rate=0.001),
 model.summary()
 
 # Set batch size and number of epochs
-batch_size = 16
+batch_size = 3
 epochs = 25
 
 # Prepare data generators for training and validation
