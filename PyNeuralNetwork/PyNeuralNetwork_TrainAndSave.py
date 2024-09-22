@@ -83,7 +83,7 @@ x = Dense(512, activation='relu')(x)
 x = Dropout(0.5)(x)
 
 # Output for bounding box (4 values)
-bbox_output = Dense(BBOX_OUTPUT, activation='linear', name='bbox')(x)
+bbox_output = Dense(BBOX_OUTPUT, activation='sigmoid', name='bbox')(x)
 
 # Output for classification (1 value for binary classification)
 class_output = Dense(1, activation='sigmoid', name='class')(x)
