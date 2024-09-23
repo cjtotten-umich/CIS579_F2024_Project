@@ -37,14 +37,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="images\0eaIeLGliUbnW3q0i7kPJw_0_0.jpg" />
-    <Content Include="images\zOepdTz8kaXEl6v3HsAaMQ_0_0.jpg" />
-    <Content Include="images\_3CThI4K1mwH05OB-tiWsw_1_1.jpg" />
-    <Content Include="images\_dS7zd0TzTziva8mRAFQ8g_0_1.jpg" />
-    <Content Include="images\__ORLrnsgTsguXCdCX-CeA_0_1.jpg" />
+    <Compile Include="DoNothing.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DoNothing.cs" />
+    <Folder Include="images\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

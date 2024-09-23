@@ -14,11 +14,11 @@ namespace NeuralNetwork_Console
     {
         static void Main(string[] args)
         {
-            //TestStreetView(42.30854f, -83.12639f);
-            TestNetwork("C:\\Images", "C:\\Training");
+            TestStreetView(28.597436, -81.244628);
+            //TestNetwork("C:\\Images", "C:\\Training");
         }
 
-        private static void TestStreetView(float lat, float lng)
+        private static void TestStreetView(double lat, double lng)
         {
             var sw = Stopwatch.StartNew();
 
@@ -31,9 +31,9 @@ namespace NeuralNetwork_Console
             var threads = new List<Thread>();
             var list = new List<PanoInfo>();
             Console.WriteLine("Getting Pano IDs");
-            for (float currentLat = startlat; currentLat <= lat + distance; currentLat += step)
+            for (var currentLat = startlat; currentLat <= lat + distance; currentLat += step)
             {
-                for (float currentLng = startlng; currentLng < lng + distance; currentLng += step)
+                for (var currentLng = startlng; currentLng < lng + distance; currentLng += step)
                 {
                     var t = new Thread(thread => list.AddRange(StreetView.GetPanoIds(new PanoPosition(currentLat, currentLng))));
                     t.Start();

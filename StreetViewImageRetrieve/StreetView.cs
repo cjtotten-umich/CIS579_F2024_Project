@@ -65,7 +65,7 @@ namespace StreetViewImageRetrieve
                             if (response.StatusCode == System.Net.HttpStatusCode.OK)
                             {
                                 var s = response.Content.ReadAsByteArrayAsync().Result;
-                                File.WriteAllBytes("c:\\Images\\" + panoInfo.PanoId + "_" + i + "_" + j + ".jpg", s);
+                                File.WriteAllBytes("C:\\ECE579\\images\\" + panoInfo.PanoId + "_" + i + "_" + j + ".jpg", s);
                             }
                         }
                         catch(Exception ex)

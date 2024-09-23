@@ -1,10 +1,12 @@
 import os
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, Input
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend as K
 
 # Set image size
 IMG_HEIGHT, IMG_WIDTH = 512, 512
@@ -22,10 +24,10 @@ def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
         annotations = annotations.sample(frac=1).reset_index(drop=True)
 
         for offset in range(0, num_samples, batch_size):
-            batch_samples = annotations.iloc[offset:offset+batch_size]
+            batch_samples = annotations.iloc[offset:offset + batch_size]
             images = []
             class_labels = []
-            bbox_labels = []
+            class_labels = []
             
             for _, row in batch_samples.iterrows():
                 # Load and preprocess the image
@@ -34,19 +36,41 @@ def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
                 img = img_to_array(img) / 255.0  # Normalize to [0, 1]
                 images.append(img)
                 
-                # Get the class label and bounding box
-                class_label = row['class']
-                bbox = [row['x_min'], row['y_min'], row['x_max'], row['y_max']]
-                class_labels.append(class_label)
-                bbox_labels.append(bbox)
+                class_labels.append(row['class'])
             
             # Convert lists to numpy arrays
-            X = np.array(images)
-            y_class = np.array(class_labels)
-            y_bbox = np.array(bbox_labels)
+            X = np.array(images)  # Inputs
+            y_classes = np.array(class_labels)  # Bounding box coordinates
             
-            # Yield the batch of images, class labels, and bounding boxes
-            yield X, (y_class, y_bbox)
+            # Yield inputs and corresponding outputs as a tuple of numpy arrays
+            yield X, y_classes
+
+def Custom_BoundingBox_Loss(y_true, y_pred):
+    # `y_true[:, 0]` contains the true class labels (extracted from y_true)
+    class_true = y_true[:, 0]  # Extract the class labels
+        
+    # `y_true[:, 1:]` contains the true bounding box coordinates (extracted from y_true)
+    true_bbox = y_true[:, 1:]  # Extract bounding box coordinates from y_true
+        
+    # Print the predicted and true bounding boxes for debugging
+    # tf.print("class_true:", class_true)
+    # tf.print("true_bbox:", true_bbox)
+    # tf.print("y_true:", y_pred)
+    # tf.print("y_pred:", y_pred)
+    
+    # Only calculate the bbox loss when class_true indicates a sign is present (class_true == 1)
+    sign_present_mask = K.cast(K.greater(class_true, 0.5), K.floatx())  # Mask when a sign is present
+        
+    # Calculate the MSE for the bounding boxes
+    bbox_loss = K.mean(K.square(y_pred - true_bbox), axis=-1)
+        
+    # Apply the mask: ignore the bbox loss if no sign is present
+    masked_loss = bbox_loss * sign_present_mask
+        
+    # Ensure the loss is finite (not NaN or Inf) using tf.where
+    masked_loss = tf.where(tf.math.is_finite(masked_loss), masked_loss, tf.zeros_like(masked_loss))
+        
+    return masked_loss
 
 # Set up file paths for training and validation data
 train_image_dir = '..\\TrainingData\\images'
@@ -82,32 +106,23 @@ x = Flatten()(x)
 x = Dense(512, activation='relu')(x)
 x = Dropout(0.5)(x)
 
-# Output for bounding box (4 values)
-bbox_output = Dense(BBOX_OUTPUT, activation='sigmoid', name='bbox')(x)
-
 # Output for classification (1 value for binary classification)
 class_output = Dense(1, activation='sigmoid', name='class')(x)
 
 # Define the model
-model = Model(inputs=input_layer, outputs=[class_output, bbox_output])
+model = Model(inputs=input_layer, outputs=class_output)
 
 # Compile the model with a combined loss
 model.compile(optimizer=Adam(learning_rate=0.001),
-              loss={
-                  'class': 'binary_crossentropy',  # Classification loss
-                  'bbox': 'mean_squared_error'     # Bounding box regression loss
-              },
-              metrics={
-                  'class': 'accuracy',             # Classification accuracy
-                  'bbox': 'mean_squared_error'     # Bounding box mean squared error
-              })
+              loss='binary_crossentropy',
+              metrics= ['accuracy'])
 
 # Print the model summary
 model.summary()
 
 # Set batch size and number of epochs
-batch_size = 3
-epochs = 25
+batch_size = 5
+epochs = 50
 
 # Prepare data generators for training and validation
 train_generator = custom_data_generator(
@@ -141,6 +156,5 @@ history = model.fit(
 model.save('model.keras')
 
 # Evaluate the model on validation data
-# val_loss, val_class_acc, val_bbox_mse = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
-# print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")
-# print(f"Validation Bounding Box MSE: {val_bbox_mse:.4f}")
+val_loss, val_class_acc = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
+print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")

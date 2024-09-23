@@ -48,6 +48,7 @@ namespace ImageLabelling
                 lblXmax.Text = "0.0";
                 lblYmax.Text = "0.0";
                 lblStatus.Text = "-";
+                chkHasSign.Checked = false;
 
                 lblFilename.Text = _files[_currentFile];
             }
@@ -77,11 +78,12 @@ namespace ImageLabelling
             }
 
             _min = !_min;
+            chkHasSign.Checked = true;
         }
 
         private void cmdSaveImage_Click(object sender, EventArgs e)
         {
-            var filename = Path.GetFileName(_files[_currentFile]);
+            var filename = Guid.NewGuid() + ".jpg";
             
             File.Move(_files[_currentFile], txtLabelledRoot.Text + "\\images\\" + filename);
             var sb = new StringBuilder();
@@ -94,5 +96,7 @@ namespace ImageLabelling
             File.AppendAllText(txtLabelledRoot.Text + "\\annotations.csv", sb.ToString());
             lblStatus.Text = "Saved";
         }
+
+
     }
 }
