@@ -43,5 +43,8 @@
     <Content Include="images\_dS7zd0TzTziva8mRAFQ8g_0_1.jpg" />
     <Content Include="images\__ORLrnsgTsguXCdCX-CeA_0_1.jpg" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DoNothing.cs" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
