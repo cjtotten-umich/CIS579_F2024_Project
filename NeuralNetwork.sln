@@ -13,11 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreetViewImageRetrieve", "
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "PyNeuralNetwork", "PyNeuralNetwork\PyNeuralNetwork.pyproj", "{6513014C-761C-41BB-92AE-1CA505372023}"
 EndProject
-<<<<<<< HEAD
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrainingData", "TrainingData\TrainingData.csproj", "{A64E37FE-610E-4616-B1D4-B6F6C5E9CA80}"
 EndProject
-=======
->>>>>>> parent of cc58e3b (added python for reading file and processing images, also added some of the training data into the project)
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageLabelling", "ImageLabelling\ImageLabelling.csproj", "{B389107D-DC2E-4E87-88DE-D81A6AA4B946}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -70,6 +69,14 @@ Global
 		{A64E37FE-610E-4616-B1D4-B6F6C5E9CA80}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A64E37FE-610E-4616-B1D4-B6F6C5E9CA80}.Release|x64.ActiveCfg = Release|Any CPU
 		{A64E37FE-610E-4616-B1D4-B6F6C5E9CA80}.Release|x64.Build.0 = Release|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Debug|x64.Build.0 = Debug|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|x64.ActiveCfg = Release|Any CPU
+		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
