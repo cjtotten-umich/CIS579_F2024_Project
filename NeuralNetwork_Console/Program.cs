@@ -14,7 +14,11 @@ namespace NeuralNetwork_Console
     {
         static void Main(string[] args)
         {
-            TestStreetView(28.597436, -81.244628);
+            Console.WriteLine("Enter latitude:");
+            var lat = Console.ReadLine();
+            Console.WriteLine("Enter longitude:");
+            var lng = Console.ReadLine();
+            TestStreetView(Convert.ToDouble(lat), Convert.ToDouble(lng));
             //TestNetwork("C:\\Images", "C:\\Training");
         }
 
