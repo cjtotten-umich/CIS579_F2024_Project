@@ -121,7 +121,7 @@ model.compile(optimizer=Adam(learning_rate=0.001),
 model.summary()
 
 # Set batch size and number of epochs
-batch_size = 16
+batch_size = 5
 epochs = 50
 
 # Prepare data generators for training and validation
