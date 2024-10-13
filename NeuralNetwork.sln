@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrainingData", "TrainingDat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageLabelling", "ImageLabelling\ImageLabelling.csproj", "{B389107D-DC2E-4E87-88DE-D81A6AA4B946}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelOutputImage", "ModelOutputImage\ModelOutputImage.csproj", "{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,14 @@ Global
 		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|x64.ActiveCfg = Release|Any CPU
 		{B389107D-DC2E-4E87-88DE-D81A6AA4B946}.Release|x64.Build.0 = Release|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Debug|x64.Build.0 = Debug|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Release|x64.ActiveCfg = Release|Any CPU
+		{F65F3EF1-D45A-4E37-84B8-4531FB02B4EF}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
