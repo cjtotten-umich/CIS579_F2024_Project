@@ -33,7 +33,7 @@ namespace ModelOutputImage
         private string imagesFolder;
         private string csvLabelsFile;
         private List<string> imageFileNames = new List<string>();
-        private List<Tuple<string, bool, double, double>> annontations = new List<Tuple<string, bool, double, double>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location
+        private List<Tuple<string, double, double, double>> annontations = new List<Tuple<string, double, double, double>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location
         private int imageIndexer = 0;
 
         public MainWindow()
@@ -92,7 +92,7 @@ namespace ModelOutputImage
                 return;
             }
 
-            string[] files = Directory.GetFiles(imagesFolder, "*.png");
+            string[] files = Directory.GetFiles(imagesFolder, "*.*");
             imageFileNames.Clear(); // clear previous entires
             imageFileNames.AddRange(files);
 
@@ -125,7 +125,7 @@ namespace ModelOutputImage
                     {
                         string line = reader.ReadLine();
                         var values = line.Split(',');
-                        Tuple<string, bool, double, double> annotation = new Tuple<string, bool, double, double>(values[0], Convert.ToBoolean(Convert.ToInt16(values[1])), double.Parse(values[2]), double.Parse(values[3]));
+                        Tuple<string, double, double, double> annotation = new Tuple<string, double, double, double>(values[0], Convert.ToDouble(values[1]), double.Parse(values[2]), double.Parse(values[3]));
                         annontations.Add(annotation);
                     }
                 }
@@ -149,7 +149,7 @@ namespace ModelOutputImage
 
         private void searchForAnnotations(string fileName, BitmapImage image)
         {
-            foreach(Tuple<string, bool, double, double> annotation in annontations)
+            foreach(Tuple<string, double, double, double> annotation in annontations)
             {
                 if(annotation.Item1 == fileName)
                 {
@@ -165,7 +165,7 @@ namespace ModelOutputImage
                 }
             }
         }
-        private void drawDataOnImage(Tuple<string, bool, double, double> imageData, BitmapImage bitmap)
+        private void drawDataOnImage(Tuple<string, double, double, double> imageData, BitmapImage bitmap)
         {
             // Convert annotation points to points in image space
             int x = Convert.ToInt32(imageData.Item3 * 512);
