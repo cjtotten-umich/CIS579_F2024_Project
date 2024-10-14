@@ -9,7 +9,7 @@ model = load_model('model.keras', compile=False)
 
 # Set image size and directories
 IMG_HEIGHT, IMG_WIDTH = 512, 512
-image_dir = 'c:\\ECE579\\images'  # Directory with test images
+image_dir = '../TestData/'  # Directory with test images
 
 # Function to preprocess a single image
 def preprocess_image(image_path):
@@ -17,6 +17,7 @@ def preprocess_image(image_path):
     img = load_img(image_path, target_size=(IMG_HEIGHT, IMG_WIDTH))
     # Convert to array and normalize to [0, 1]
     img_array = img_to_array(img) / 255.0
+    #img_array = img_array[:, :, 0:1] // this will make us only have the red channel
     # Add batch dimension (1, 512, 512, 3) for prediction
     return np.expand_dims(img_array, axis=0)
 
@@ -32,12 +33,9 @@ def predict_image(image_path):
 def predict_directory(image_dir):
     # List to store results
     results = []
-    max = 1000
-    counter = 0
     # Loop through all images in the directory
     for filename in os.listdir(image_dir):
-        if filename.endswith('.jpg') and counter < max:
-            counter += 1
+        if filename.endswith('.jpg'):
             image_path = os.path.join(image_dir, filename)
             # Get class and bounding box predictions
             class_pred = predict_image(image_path)

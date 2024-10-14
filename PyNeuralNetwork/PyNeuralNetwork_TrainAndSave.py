@@ -34,6 +34,7 @@ def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
                 img_path = os.path.join(image_dir, row['filename'])
                 img = load_img(img_path, target_size=image_size)
                 img = img_to_array(img) / 255.0  # Normalize to [0, 1]
+                # img = img[:, :, 0:1] # only red channel
                 images.append(img)
                 
                 class_labels.append(row['sign'])
@@ -79,7 +80,7 @@ val_image_dir = '../TrainingData/images'
 val_annotations_file = '../TrainingData/annotations.csv'
 
 # Build the CNN model for detecting signs and predicting bounding boxes
-input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3))
+input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)) # change to 1 for only red channel
 
 # First convolutional layer
 x = Conv2D(32, (3, 3), activation='relu')(input_layer)
@@ -121,7 +122,7 @@ model.compile(optimizer=Adam(learning_rate=0.001),
 model.summary()
 
 # Set batch size and number of epochs
-batch_size = 16
+batch_size = 64
 epochs = 50
 
 # Prepare data generators for training and validation
@@ -152,9 +153,11 @@ history = model.fit(
     epochs=epochs
 )
 
+print (history.history)
+
 # Save the trained model
 model.save('model.keras')
 
 # Evaluate the model on validation data
-val_loss, val_class_acc = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
-print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")
+#val_loss, val_class_acc = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
+#print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")
