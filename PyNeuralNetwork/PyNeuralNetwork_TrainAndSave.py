@@ -4,19 +4,20 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization, Input
+from tensorflow.keras.losses import BinaryCrossentropy, MeanSquaredError
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
+from tensorflow.keras import mixed_precision
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
 
-# Set image size
+mixed_precision.set_global_policy('mixed_float16')
+
 IMG_HEIGHT, IMG_WIDTH = 512, 512
-BBOX_OUTPUT = 4  # (x_min, y_min, x_max, y_max)
 
-# Define the custom data generator
 def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
-    # Read the annotations CSV file
     annotations = pd.read_csv(annotations_file)
-    
     num_samples = len(annotations)
     
     while True:
@@ -26,32 +27,32 @@ def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
         for offset in range(0, num_samples, batch_size):
             batch_samples = annotations.iloc[offset:offset + batch_size]
             images = []
-            class_labels = []
-            class_labels = []
+            probability_labels = []
+            position_labels = []
             
             for _, row in batch_samples.iterrows():
-                # Load and preprocess the image
                 img_path = os.path.join(image_dir, row['filename'])
                 img = load_img(img_path, target_size=image_size)
-                img = img_to_array(img) / 255.0  # Normalize to [0, 1]
+                img = img_to_array(img) / 255.0
                 # img = img[:, :, 0:1] # only red channel
                 images.append(img)
                 
-                class_labels.append(row['sign'])
+                probability_labels.append(row['sign'])
+                position_labels.append([row['x'], row['y']])
+                
             
-            # Convert lists to numpy arrays
-            X = np.array(images)  # Inputs
-            y_classes = np.array(class_labels)  # Bounding box coordinates
+            X = np.array(images)
+            y_probability = np.array(probability_labels)
+            y_probability = np.reshape(y_probability, (-1, 1))
             
-            # Yield inputs and corresponding outputs as a tuple of numpy arrays
-            yield X, y_classes
+            y_position = np.array(position_labels)
+             
+            yield X, {'probability': y_probability, 'position': y_position}
 
 def Custom_BoundingBox_Loss(y_true, y_pred):
-    # `y_true[:, 0]` contains the true class labels (extracted from y_true)
-    class_true = y_true[:, 0]  # Extract the class labels
+    true_probability = y_true[:, 0] 
         
-    # `y_true[:, 1:]` contains the true bounding box coordinates (extracted from y_true)
-    true_bbox = y_true[:, 1:]  # Extract bounding box coordinates from y_true
+    true_location = y_true[:, 1:] 
         
     # Print the predicted and true bounding boxes for debugging
     # tf.print("class_true:", class_true)
@@ -59,70 +60,59 @@ def Custom_BoundingBox_Loss(y_true, y_pred):
     # tf.print("y_true:", y_pred)
     # tf.print("y_pred:", y_pred)
     
-    # Only calculate the bbox loss when class_true indicates a sign is present (class_true == 1)
-    sign_present_mask = K.cast(K.greater(class_true, 0.5), K.floatx())  # Mask when a sign is present
+    probability_mask = K.cast(K.greater(true_probability, 0.5), K.floatx())
         
-    # Calculate the MSE for the bounding boxes
-    bbox_loss = K.mean(K.square(y_pred - true_bbox), axis=-1)
+    location_loss = K.mean(K.square(y_pred - true_location), axis=-1)
         
-    # Apply the mask: ignore the bbox loss if no sign is present
-    masked_loss = bbox_loss * sign_present_mask
+    masked_loss = location_loss * probability_mask
         
-    # Ensure the loss is finite (not NaN or Inf) using tf.where
     masked_loss = tf.where(tf.math.is_finite(masked_loss), masked_loss, tf.zeros_like(masked_loss))
         
     return masked_loss
+    
+train_image_dir = '/tmp/TrainingData/images'
+train_annotations_file = '/tmp/TrainingData/annotations.csv'
+val_image_dir = '/tmp/TrainingData/images'
+val_annotations_file = '/tmp/TrainingData/annotations.csv'
 
-# Set up file paths for training and validation data
-train_image_dir = '../TrainingData/images'
-train_annotations_file = '../TrainingData/annotations.csv'
-val_image_dir = '../TrainingData/images'
-val_annotations_file = '../TrainingData/annotations.csv'
-
-# Build the CNN model for detecting signs and predicting bounding boxes
 input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)) # change to 1 for only red channel
 
-# First convolutional layer
 x = Conv2D(32, (3, 3), activation='relu')(input_layer)
 x = BatchNormalization()(x)
 x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Second convolutional layer
 x = Conv2D(64, (3, 3), activation='relu')(x)
 x = BatchNormalization()(x)
 x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Third convolutional layer
 x = Conv2D(128, (3, 3), activation='relu')(x)
 x = BatchNormalization()(x)
 x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Fourth convolutional layer
 x = Conv2D(256, (3, 3), activation='relu')(x)
 x = BatchNormalization()(x)
 x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Flatten the output and feed into fully connected layers
 x = Flatten()(x)
 x = Dense(512, activation='relu')(x)
 x = Dropout(0.5)(x)
 
-# Output for classification (1 value for binary classification)
-class_output = Dense(1, activation='sigmoid', name='class')(x)
+probability_output = Dense(1, activation='sigmoid', name='probability')(x)
 
-# Define the model
-model = Model(inputs=input_layer, outputs=class_output)
+position_output = Dense(2, activation='linear', name='position')(x)
 
-# Compile the model with a combined loss
-model.compile(optimizer=Adam(learning_rate=0.001),
-              loss='binary_crossentropy',
-              metrics= ['accuracy'])
+model = Model(inputs=input_layer, outputs=[probability_output, position_output])
 
-# Print the model summary
-model.summary()
+model.compile(
+    optimizer=Adam(learning_rate=0.001),
+    loss={'probability': 'binary_crossentropy', 'position': 'mean_squared_error'},
+    metrics={'probability': 'accuracy', 'position': 'mean_squared_error'}
+)
+
+#model.summary()
 
 # Set batch size and number of epochs
-batch_size = 64
+batch_size = 16
 epochs = 50
 
 # Prepare data generators for training and validation
@@ -144,18 +134,45 @@ validation_generator = custom_data_generator(
 num_train_samples = len(pd.read_csv(train_annotations_file))
 num_val_samples = len(pd.read_csv(val_annotations_file))
 
-# Train the model
-history = model.fit(
-    train_generator,
-    steps_per_epoch=num_train_samples // batch_size,
-    validation_data=validation_generator,
-    validation_steps=num_val_samples // batch_size,
-    epochs=epochs
-)
+for epoch in range(epochs):
+    print(f"Epoch {epoch + 1}/{epochs}")
+    
+    for step, (X_batch, y_batch) in enumerate(train_generator):
+        mse = tf.keras.losses.MeanSquaredError()
+        bce = tf.keras.losses.BinaryCrossentropy()
 
-print (history.history)
+        with tf.GradientTape() as tape:
+            y_pred_prob, y_pred_pos = model(X_batch, training=True)
+            
+            y_true_prob = y_batch['probability']
+            y_true_pos = y_batch['position']
+            
+            loss_prob = bce(y_true_prob, y_pred_prob)
+            
+            mask = tf.cast(tf.equal(y_true_prob, 1), dtype=tf.float32) 
+            mask = tf.expand_dims(mask, axis=-1)    
+            
+            raw_loss_pos = mse(y_true_pos, y_pred_pos)
+            loss_pos = raw_loss_pos * mask
+            
+            loss_pos = tf.reduce_sum(loss_pos)
+    
+            total_loss = loss_prob + loss_pos
+        
+        gradients = tape.gradient(total_loss, model.trainable_weights)
+        
+        model.optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+        
+        # Print progress
+        if step % 10 == 0:
+            print(f"Step {step}: loss = {total_loss.numpy()}")
+        
+        # If the number of steps per epoch is reached, break
+        if step >= (num_train_samples // batch_size):
+            break
 
-# Save the trained model
+#print (history.history)
+
 model.save('model.keras')
 
 # Evaluate the model on validation data
