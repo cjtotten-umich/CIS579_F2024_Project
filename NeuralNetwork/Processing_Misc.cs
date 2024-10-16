@@ -15,6 +15,7 @@
         static Action<Index1D, ArrayView<double>, ArrayView<double>, int, int, int, int, int, int, ArrayView<double>> _kernel_ConvolveValid;
         static Action<Index1D, ArrayView<double>, int, int, int, int, ArrayView<double>> _kernel_VolumePad;
         static Action<Index1D, ArrayView<double>, int, int, int, ArrayView<double>> _kernel_VolumeFlip;
+        static Action<Index1D, ArrayView<double>, double> _kernel_Sum;
 
         static void Kernel_24BPP_RGB_ImageToVolume(Index1D index, ArrayView<byte> image, int x, int y, ArrayView<double> volume)
         {
@@ -140,6 +141,11 @@
             result[index] = sum;
         }
 
+        static void Kernel_Sum(Index1D index, ArrayView<double> v, double sum)
+        {
+            Atomic.Add(ref sum, v[index]);
+        }
+
         static void Kernel_VolumePad(Index1D index, ArrayView<double> v, int x, int y, int z, int pad, ArrayView<double> result)
         {
             var halfPad = pad / 2;
@@ -199,6 +205,17 @@
                     var result = resultBuffer.GetAsArray1D();
                     return new Volume(result, new VolumeSize(v.Size.X + padSize, v.Size.Y + padSize, v.Size.Z));
                 }
+            }
+        }
+
+        public static double VolumeSum(Volume v)
+        {
+            using (var volumeBuffer = _accelerator.Allocate1D<double>(v.Size.TotalSize))
+            {
+                volumeBuffer.CopyFromCPU(v.Data);
+                var result = 0.0;
+                _kernel_Sum(v.Size.TotalSize, volumeBuffer.View, result);
+                return result;
             }
         }
 

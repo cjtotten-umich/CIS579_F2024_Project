@@ -17,7 +17,8 @@ namespace NeuralNetwork
         static Action<Index1D, ArrayView<double>, int, int, int, int, ArrayView<double>> _kernel_AveragePool;
         static Action<Index1D, ArrayView<double>, ArrayView<double>, ArrayView<double>, ArrayView<double>> _kernel_FullyConnected;
         static Action<Index1D, ArrayView<double>, int, int, ArrayView<double>> _kernel_LayeredNormalization;
-       
+        
+
         static void Kernel_LayeredNormalization(Index1D index, ArrayView<double> volume, int x, int y, ArrayView<double> result)
         {
             var offset = index * x * y;

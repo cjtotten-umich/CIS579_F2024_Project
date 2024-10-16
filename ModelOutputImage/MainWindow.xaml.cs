@@ -125,8 +125,12 @@ namespace ModelOutputImage
                     {
                         string line = reader.ReadLine();
                         var values = line.Split(',');
-                        Tuple<string, double, double, double> annotation = new Tuple<string, double, double, double>(values[0], Convert.ToDouble(values[1]), double.Parse(values[2]), double.Parse(values[3]));
-                        annontations.Add(annotation);
+                        var probability = Convert.ToDouble(values[1]);
+                        if (probability > 0)
+                        {
+                            Tuple<string, double, double, double> annotation = new Tuple<string, double, double, double>(values[0], probability, double.Parse(values[2]), double.Parse(values[3]));
+                            annontations.Add(annotation);
+                        }
                     }
                 }
             }

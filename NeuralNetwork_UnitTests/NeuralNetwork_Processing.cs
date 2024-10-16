@@ -2,6 +2,7 @@ namespace NeuralNetwork_UnitTests
 {
     using NeuralNetwork;
     using NUnit.Framework;
+    using System.CodeDom;
     using System.Drawing;
 
     public class NeuralNetwork_Processing
@@ -279,6 +280,13 @@ namespace NeuralNetwork_UnitTests
             }
 
             Assert.That(true);
+        }
+
+        [Test]
+        public void Processing_Sum()
+        {
+            var sum = Processing.VolumeSum(new Volume(TestData.TestData_3_3_3, new VolumeSize(3, 3, 3)));
+            Assert.That(sum == 12);
         }
     }
 }

@@ -4,6 +4,7 @@
     using ILGPU.Runtime;
     using ILGPU.Runtime.Cuda;
     using ILGPU.Runtime.CPU;
+    using System;
 
     public partial class Processing
     {
@@ -47,6 +48,7 @@
            
             _kernel_LayeredNormalization_Backward = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, int, int, ArrayView<double>, ArrayView<double>>(Kernel_LayeredNormalization_Backward);
 
+            _kernel_Sum = _accelerator.LoadAutoGroupedStreamKernel<Index1D, ArrayView<double>, double>(Kernel_Sum);
         }
     }
 }

@@ -87,6 +87,7 @@
   <ItemGroup>
     <Compile Include="Classes\AveragePoolingLayer.cs" />
     <Compile Include="Classes\AdamLayer.cs" />
+    <Compile Include="Classes\DropoutLayer.cs" />
     <Compile Include="Classes\LayeredNormalizationLayer.cs" />
     <Compile Include="Classes\ConvolutionLayer.cs" />
     <Compile Include="Classes\FullyConnectedLayer.cs" />
