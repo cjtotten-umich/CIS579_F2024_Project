@@ -70,10 +70,32 @@ def Custom_BoundingBox_Loss(y_true, y_pred):
         
     return masked_loss
     
-train_image_dir = '/tmp/TrainingData/images'
-train_annotations_file = '/tmp/TrainingData/annotations.csv'
-val_image_dir = '/tmp/TrainingData/images'
-val_annotations_file = '/tmp/TrainingData/annotations.csv'
+print ("Which training set?")
+print ("(1) Full Training Set")
+print ("(2) Clean Training Set")
+print ("(3) Strictly Clean Training Set")
+choice = input("PLEASE ENTER A NUMBER:") 
+trainingSetChoice = int(choice)
+
+if trainingSetChoice == 1:
+    train_image_dir = '/data/TrainingData/full/images'
+    train_annotations_file = '/data/TrainingData/full/annotations.csv'
+    val_image_dir = '/data/TrainingData/full/images'
+    val_annotations_file = '/data/TrainingData/full/annotations.csv'
+elif trainingSetChoice == 2:
+    train_image_dir = '/data/TrainingData/clean/images'
+    train_annotations_file = '/data/TrainingData/clean/annotations.csv'
+    val_image_dir = '/data/TrainingData/clean/images'
+    val_annotations_file = '/data/TrainingData/clean/annotations.csv'
+elif trainingSetChoice == 3:
+    train_image_dir = '/data/TrainingData/strict/images'
+    train_annotations_file = '/data/TrainingData/strict/annotations.csv'
+    val_image_dir = '/data/TrainingData/strict/images'
+    val_annotations_file = '/data/TrainingData/strict/annotations.csv'
+else:
+    print ('I DO NOT KNOW WHAT YOU WANT')
+    exit()
+
 
 input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)) # change to 1 for only red channel
 
@@ -99,7 +121,7 @@ x = Dropout(0.5)(x)
 
 probability_output = Dense(1, activation='sigmoid', name='probability')(x)
 
-position_output = Dense(2, activation='linear', name='position')(x)
+position_output = Dense(2, activation='sigmoid', name='position')(x)
 
 model = Model(inputs=input_layer, outputs=[probability_output, position_output])
 
@@ -173,7 +195,12 @@ for epoch in range(epochs):
 
 #print (history.history)
 
-model.save('model.keras')
+if trainingSetChoice == 1:
+    model.save('full.keras')
+elif trainingSetChoice == 2:
+    model.save('clean.keras')
+elif trainingSetChoice == 3:
+    model.save('strict.keras')
 
 # Evaluate the model on validation data
 #val_loss, val_class_acc = model.evaluate(validation_generator, steps=num_val_samples // batch_size)

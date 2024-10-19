@@ -33,14 +33,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="annotations.csv" />
+    <None Include="full\annotations.csv" />
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DoNothing.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="images\" />
+    <Folder Include="clean\" />
+    <Folder Include="full\images\" />
+    <Folder Include="strict\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

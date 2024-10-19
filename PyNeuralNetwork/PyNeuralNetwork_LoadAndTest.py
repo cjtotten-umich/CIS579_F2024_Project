@@ -7,7 +7,7 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 model = load_model('model.keras', compile=False)
 
 IMG_HEIGHT, IMG_WIDTH = 512, 512
-image_dir = '/tmp/TestData/' 
+image_dir = '/data/TestData/' 
 
 def preprocess_image(image_path):
     img = load_img(image_path, target_size=(IMG_HEIGHT, IMG_WIDTH))
