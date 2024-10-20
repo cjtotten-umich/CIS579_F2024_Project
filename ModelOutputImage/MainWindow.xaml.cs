@@ -34,11 +34,12 @@ namespace ModelOutputImage
     /// </summary>
     public partial class MainWindow : Window
     {
+        //file/folder names for data
         private string imagesFolder;
         private string csvLabelsFile;
 
-        //raw files
-        private List<Tuple<string, double, double, double, string>> annontationsImagePathAttached = new List<Tuple<string, double, double, double, string>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location
+        //combined data tuple of annotations and images full path
+        private List<Tuple<string, double, double, double, string>> annontationsImagePathAttached = new List<Tuple<string, double, double, double, string>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location, item 5 = image folder location
         private int imageIndexer = 0;
 
         public MainWindow()
@@ -49,13 +50,11 @@ namespace ModelOutputImage
         /// <summary>
         /// On button press, browse for a folder that contains images for applying labels to
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void BrowseImageFolder(object sender, RoutedEventArgs e)
         {
             using (var folderDialog = new FolderBrowserDialog())
             {
-                folderDialog.Description = "Select a the Folder Containing Processed Images";
+                folderDialog.Description = "Select the folder containing images that have annotations.";
                 folderDialog.ShowNewFolderButton = true;
 
                 if (folderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -69,20 +68,18 @@ namespace ModelOutputImage
         /// <summary>
         /// On button press, browse for the csv file contianing annotations for the images selected
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void BrowseCSVLabelFile(object sender, RoutedEventArgs e)
         {
             if(imagesFolder == null || imagesFolder == string.Empty)
             {
-                System.Windows.MessageBox.Show("Please Select the Image Folder Path"); 
+                System.Windows.MessageBox.Show("Please select the image folder path first."); 
                 return;
             }
 
             var openFileDialog = new OpenFileDialog
             {
                 Filter = "CSV Files (*.csv)|*.csv",
-                Title = "Open Labels CSV File"
+                Title = "Open Annotations CSV File"
             };
 
             if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -95,18 +92,29 @@ namespace ModelOutputImage
         /// <summary>
         /// Load all image fileNames form the currently selected image folder path
         /// </summary>
-        private void LoadImageFileNames(object sender, RoutedEventArgs e)
+        private void LoadAllData(object sender, RoutedEventArgs e)
         {
-            if(imagesFolder == string.Empty || imagesFolder == null ||Directory.Exists(imagesFolder) == false)
+            annontationsImagePathAttached = new List<Tuple<string, double, double, double, string>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location, item 5 = image folder location
+            imageIndexer = 0;
+
+            //check that image folde has been selected
+            if (imagesFolder == string.Empty || imagesFolder == null || Directory.Exists(imagesFolder) == false)
             {
-                System.Windows.MessageBox.Show("Please select an image directory containing .png, .bmp, or .jpg files via \"Browse for Image Folder\" button");
+                System.Windows.MessageBox.Show("Please select an image directory containing .png, .bmp, or .jpg files via \"Browse for Image Folder\" button.");
                 return;
             }
 
+            //check that csv has been selected
+            if (csvLabelsFile == string.Empty || csvLabelsFile == null || File.Exists(csvLabelsFile) == false)
+            {
+                System.Windows.MessageBox.Show("Please select csv file containing image annotations via \"Browse for Labels CSV\" button.");
+                return;
+            }
+
+            //try to load the data
             try
             {
-                loadCSVData();
-                Console.WriteLine(annontationsImagePathAttached[0].Item5 + annontationsImagePathAttached[0].Item1);
+                loadCSVDataWithPath();
             }
             catch (Exception ex) 
             {
@@ -120,9 +128,9 @@ namespace ModelOutputImage
         }
 
         /// <summary>
-        /// Load csv data from the selected path
+        /// Load csv data from the selected path and add the image path
         /// </summary>
-        private void loadCSVData()
+        private void loadCSVDataWithPath()
         {
             try
             {
@@ -131,16 +139,13 @@ namespace ModelOutputImage
                     // Skip header
                     string headerLine = reader.ReadLine();
 
+                    //read all rows of the csv, add to the annotations with path tuple, the last item is the path for image folder
                     while (!reader.EndOfStream)
                     {
                         string line = reader.ReadLine();
                         var values = line.Split(',');
-                        var probability = Convert.ToDouble(values[1]);
-                        if (probability > 0)
-                        {
-                            Tuple<string, double, double, double, string> annotationWithPath = new Tuple<string, double, double, double, string>(values[0], probability, double.Parse(values[2]), double.Parse(values[3]), imagesFolder);
-                            annontationsImagePathAttached.Add(annotationWithPath);
-                        }
+                        Tuple<string, double, double, double, string> annotationWithPath = new Tuple<string, double, double, double, string>(values[0], Convert.ToDouble(values[1]), double.Parse(values[2]), double.Parse(values[3]), imagesFolder);
+                        annontationsImagePathAttached.Add(annotationWithPath);
                     }
                 }
             }
@@ -153,32 +158,48 @@ namespace ModelOutputImage
         private void loadMainImage()
         {
             //build fileName
+            if(annontationsImagePathAttached.Count == 0)
+            {
+                System.Windows.MessageBox.Show("Data has not been loaded.");
+                return;
+            }
+
+            //build fileName
             string fileName = annontationsImagePathAttached[imageIndexer].Item5 + "/" + annontationsImagePathAttached[imageIndexer].Item1;
 
-            BitmapImage bitmap = new BitmapImage(new Uri(fileName));
-            mainImage.Source = bitmap;
-            currentImageConfidence.Text = "0";
-            regionImage.Source = null;
-            currentFileName.Text = fileName;
-
-            loadAnnotations(bitmap);
+            try
+            {
+                BitmapImage bitmap = new BitmapImage(new Uri(fileName));
+                mainImage.Source = bitmap;
+                currentImageConfidence.Text = "0";
+                regionImage.Source = null;
+                currentFileName.Text = fileName;
+                loadAnnotations(bitmap);
+            }
+            catch(Exception ex) 
+            {
+                System.Windows.MessageBox.Show("Error loading bitmap and annotations: " + ex.Message);
+            }
         }
 
+        //
         private void loadAnnotations(BitmapImage image)
         {
+            //if an annotation location is present, display the confidence and draw on the image for display
             if (annontationsImagePathAttached[imageIndexer].Item3 > 0.000001 || annontationsImagePathAttached[imageIndexer].Item4 > 0.000001) // do not draw when both items are 0
             {
-                // TODO -- this needs to be a different item
-                //currentImageConfidence.Text = annotation.Item2.ToString("0.00");
+                currentImageConfidence.Text = annontationsImagePathAttached[imageIndexer].Item2.ToString("0.00");
                 drawDataOnImage(annontationsImagePathAttached[imageIndexer], image);
             }
             else
             {
+                currentImageConfidence.Text = "N/A";
                 emptyAnnotationText.Visibility = Visibility.Visible;
                 regionImage.Visibility -= Visibility.Hidden; 
             }
         }
 
+        //draw annotation data on the image and extract a zommed region
         private void drawDataOnImage(Tuple<string, double, double, double, string> imageData, BitmapImage bitmap)
         {
             // Convert annotation points to points in image space
@@ -223,6 +244,7 @@ namespace ModelOutputImage
             extractRegionImage(bmp, x, y, 50, 50);
         }
 
+        //extract a zoomed region where the annotation is present for better viewing and display on UI
         private void extractRegionImage(Bitmap sourceBitmap, int centerX, int centerY, int width, int height)
         {
             // Calculate the top-left corner of the rectangle to extract
@@ -280,16 +302,25 @@ namespace ModelOutputImage
 
         private void LoadNextImage(object sender, RoutedEventArgs e)
         {
+            if(imageIndexer == (annontationsImagePathAttached.Count - 1) || annontationsImagePathAttached.Count == 0)
+            {
+                System.Windows.MessageBox.Show("Data and image collection end has been reached");
+                return;
+            }
+
             imageIndexer++;
             loadMainImage(); 
         }
 
         private void LoadPreviosImage(object sender, RoutedEventArgs e)
         {
-            if(imageIndexer >= 1)
-            {  
-                imageIndexer--;
+            if (imageIndexer == 0)
+            {
+                System.Windows.MessageBox.Show("Data and image collection start has been reached");
+                return;
             }
+
+            imageIndexer--;        
             loadMainImage();
         }
 
@@ -300,7 +331,7 @@ namespace ModelOutputImage
             loadMainImage();                  
         }
 
-        #region Logic for User Entering A Threshold Score To Show Above
+        #region Logic for User Entering A Threshold Score - Ensure a usable real value is input
         private void NumberTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             // Allow only digits, a single decimal point, and restrict leading zeros
