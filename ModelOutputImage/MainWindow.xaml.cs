@@ -21,6 +21,10 @@ using static System.Net.Mime.MediaTypeNames;
 using Pen = System.Drawing.Pen;
 using Color = System.Drawing.Color;
 using Rectangle = System.Drawing.Rectangle;
+using System.Text.RegularExpressions;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using System.Windows.Markup;
+using System.Net.NetworkInformation;
 
 
 namespace ModelOutputImage
@@ -32,8 +36,9 @@ namespace ModelOutputImage
     {
         private string imagesFolder;
         private string csvLabelsFile;
-        private List<string> imageFileNames = new List<string>();
-        private List<Tuple<string, double, double, double>> annontations = new List<Tuple<string, double, double, double>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location
+
+        //raw files
+        private List<Tuple<string, double, double, double, string>> annontationsImagePathAttached = new List<Tuple<string, double, double, double, string>>(); //item 1 = file name, item 2 = sign or no sign, item 3 = x location, item 4 = y location
         private int imageIndexer = 0;
 
         public MainWindow()
@@ -68,6 +73,12 @@ namespace ModelOutputImage
         /// <param name="e"></param>
         private void BrowseCSVLabelFile(object sender, RoutedEventArgs e)
         {
+            if(imagesFolder == null || imagesFolder == string.Empty)
+            {
+                System.Windows.MessageBox.Show("Please Select the Image Folder Path"); 
+                return;
+            }
+
             var openFileDialog = new OpenFileDialog
             {
                 Filter = "CSV Files (*.csv)|*.csv",
@@ -88,25 +99,24 @@ namespace ModelOutputImage
         {
             if(imagesFolder == string.Empty || imagesFolder == null ||Directory.Exists(imagesFolder) == false)
             {
-                System.Windows.MessageBox.Show("Please select an image directory containing .png files via \"Browse for Image Folder\" button");
+                System.Windows.MessageBox.Show("Please select an image directory containing .png, .bmp, or .jpg files via \"Browse for Image Folder\" button");
                 return;
             }
-
-            string[] files = Directory.GetFiles(imagesFolder, "*.*");
-            imageFileNames.Clear(); // clear previous entires
-            imageFileNames.AddRange(files);
 
             try
             {
                 loadCSVData();
+                Console.WriteLine(annontationsImagePathAttached[0].Item5 + annontationsImagePathAttached[0].Item1);
             }
             catch (Exception ex) 
             {
                 System.Windows.MessageBox.Show("Error loading image annotations. Please check .csv file and format. " + ex.Message);
             }
 
-            imageIndexer = 0;
+            imageIndexer = 0; //set to first element at start
             loadMainImage();
+
+            System.Windows.MessageBox.Show("CSV and Image Data Loaded Properly. Matches found in data: " + annontationsImagePathAttached.Count.ToString());
         }
 
         /// <summary>
@@ -128,8 +138,8 @@ namespace ModelOutputImage
                         var probability = Convert.ToDouble(values[1]);
                         if (probability > 0)
                         {
-                            Tuple<string, double, double, double> annotation = new Tuple<string, double, double, double>(values[0], probability, double.Parse(values[2]), double.Parse(values[3]));
-                            annontations.Add(annotation);
+                            Tuple<string, double, double, double, string> annotationWithPath = new Tuple<string, double, double, double, string>(values[0], probability, double.Parse(values[2]), double.Parse(values[3]), imagesFolder);
+                            annontationsImagePathAttached.Add(annotationWithPath);
                         }
                     }
                 }
@@ -142,34 +152,34 @@ namespace ModelOutputImage
 
         private void loadMainImage()
         {
-            BitmapImage bitmap = new BitmapImage(new Uri(imageFileNames[imageIndexer]));
-            mainImage.Source = bitmap;
-            regionImage.Source = null; 
-            currentFileName.Text = imageFileNames[imageIndexer];
+            //build fileName
+            string fileName = annontationsImagePathAttached[imageIndexer].Item5 + "/" + annontationsImagePathAttached[imageIndexer].Item1;
 
-            FileInfo fi = new FileInfo(imageFileNames[imageIndexer]);
-            searchForAnnotations(fi.Name, bitmap);
+            BitmapImage bitmap = new BitmapImage(new Uri(fileName));
+            mainImage.Source = bitmap;
+            currentImageConfidence.Text = "0";
+            regionImage.Source = null;
+            currentFileName.Text = fileName;
+
+            loadAnnotations(bitmap);
         }
 
-        private void searchForAnnotations(string fileName, BitmapImage image)
+        private void loadAnnotations(BitmapImage image)
         {
-            foreach(Tuple<string, double, double, double> annotation in annontations)
+            if (annontationsImagePathAttached[imageIndexer].Item3 > 0.000001 || annontationsImagePathAttached[imageIndexer].Item4 > 0.000001) // do not draw when both items are 0
             {
-                if(annotation.Item1 == fileName)
-                {
-                    if (annotation.Item3 > 0.000001 || annotation.Item4 > 0.000001) // do not draw when both items are 0
-                    {
-                        drawDataOnImage(annotation, image);
-                    }
-                    else
-                    {
-                        emptyAnnotationText.Visibility = Visibility.Visible;
-                        regionImage.Visibility -= Visibility.Hidden; 
-                    }
-                }
+                // TODO -- this needs to be a different item
+                //currentImageConfidence.Text = annotation.Item2.ToString("0.00");
+                drawDataOnImage(annontationsImagePathAttached[imageIndexer], image);
+            }
+            else
+            {
+                emptyAnnotationText.Visibility = Visibility.Visible;
+                regionImage.Visibility -= Visibility.Hidden; 
             }
         }
-        private void drawDataOnImage(Tuple<string, double, double, double> imageData, BitmapImage bitmap)
+
+        private void drawDataOnImage(Tuple<string, double, double, double, string> imageData, BitmapImage bitmap)
         {
             // Convert annotation points to points in image space
             int x = Convert.ToInt32(imageData.Item3 * 512);
@@ -285,16 +295,88 @@ namespace ModelOutputImage
 
         private void SearchAndLoadFileName(object sender, RoutedEventArgs e)
         {
-            foreach(string fileName in imageFileNames)
-            {
-                FileInfo fileInfo = new FileInfo(fileName);
+            Tuple<string, double, double, double, string> match = annontationsImagePathAttached.FirstOrDefault(t => t.Item1 == fileNameToSearchFor.Text);
+            imageIndexer = annontationsImagePathAttached.IndexOf(match);
+            loadMainImage();                  
+        }
 
-                if(fileNameToSearchFor.Text == fileInfo.Name)
-                {
-                    imageIndexer = imageFileNames.IndexOf(fileInfo.FullName);
-                    loadMainImage();
-                }
+        #region Logic for User Entering A Threshold Score To Show Above
+        private void NumberTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Allow only digits, a single decimal point, and restrict leading zeros
+            if (!IsInputValid(ScoreSort.Text, e.Text))
+            {
+                e.Handled = true;
             }
+        }
+
+        private void NumberTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // Allow backspace and delete keys
+            if (e.Key == Key.Back || e.Key == Key.Delete)
+            {
+                return;
+            }
+        }
+
+        private void NumberTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(ScoreSort.Text))
+            {
+                if (double.TryParse(ScoreSort.Text, out double value))
+                {
+                    // Ensure the value is between 0 and 100
+                    if (value < 0 || value > 100)
+                    {
+                        ScoreSort.Text = "";
+                    }
+                }
+                else
+                {
+                    ScoreSort.Text = "";
+                }
+
+                // Move the caret to the end
+                ScoreSort.CaretIndex = ScoreSort.Text.Length;
+            }
+        }
+
+        private bool IsInputValid(string currentText, string newText)
+        {
+            // Regex to allow digits, a single decimal point, and avoid leading zeroes
+            var regex = new Regex(@"^(0|[1-9]\d{0,2})(\.\d+)?$");
+            var newTextWithCurrent = currentText + newText;
+
+            // Check if the new text would still be valid
+            return regex.IsMatch(newTextWithCurrent) &&
+                   double.TryParse(newTextWithCurrent, out double result) &&
+                   result >= 0 && result <= 100;
+        }
+        #endregion
+
+        private void ScoreSort_LostFocus(object sender, RoutedEventArgs e)
+        {
+            //sort the annotations list
+            List<Tuple<string, double, double, double, string>> filteredList = annontationsImagePathAttached.Where(t => t.Item2 > (Convert.ToDouble(ScoreSort.Text))/100).ToList();
+            annontationsImagePathAttached = filteredList;
+            imageIndexer = 0;
+            loadMainImage(); 
+        }
+
+        private void SortAscending_Click(object sender, RoutedEventArgs e)
+        {
+            List<Tuple<string, double, double, double, string>> sortedList = annontationsImagePathAttached.OrderBy(t => t.Item2).ToList();
+            annontationsImagePathAttached = sortedList;
+            imageIndexer = 0;
+            loadMainImage();
+        }
+
+        private void SortDescending_Click(object sender, RoutedEventArgs e)
+        {
+            List<Tuple<string, double, double, double, string>> sortedList = annontationsImagePathAttached.OrderByDescending(t => t.Item2).ToList();
+            annontationsImagePathAttached = sortedList;
+            imageIndexer = 0;
+            loadMainImage();
         }
     }
 }

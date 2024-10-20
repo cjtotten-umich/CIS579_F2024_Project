@@ -22,23 +22,41 @@
             <TextBox Text="" VerticalAlignment="Center" Padding="2 0 0 0" Width="200" Name="fileNameToSearchFor"/>
             <Button Content="Search and Load" VerticalAlignment="Center" Padding="2 0 0 0" Click="SearchAndLoadFileName"/>
         </ToolBar>
-        <StatusBar DockPanel.Dock="Bottom" VerticalAlignment="Stretch" Height="60">
+        <ToolBar DockPanel.Dock="Top">
+            <TextBlock Text="Sort Options:" VerticalAlignment="Center" Padding="2 0 0 0"/>
+            <Separator/>
+            <TextBlock Text="Show Images with Score Above (Range 0-100):" VerticalAlignment="Center" Padding="2 0 0 0"/>
+            <TextBox Text="0" VerticalAlignment="Center" Padding="2 0 0 0" Width="50" Name="ScoreSort"
+                 PreviewTextInput="NumberTextBox_PreviewTextInput"
+                 PreviewKeyDown="NumberTextBox_PreviewKeyDown"
+                 TextChanged="NumberTextBox_TextChanged"
+                 LostFocus="ScoreSort_LostFocus"/>
+            <Button Content="Sort Ascending" VerticalAlignment="Center" Padding="2 0 0 0" Click="SortAscending_Click" />
+            <Separator/>
+            <Button Content="Sort Descending" VerticalAlignment="Center" Padding="2 0 0 0" Click="SortDescending_Click"/>
+
+
+        </ToolBar>
+            <StatusBar DockPanel.Dock="Bottom" VerticalAlignment="Stretch" Height="80">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
                     <RowDefinition/>
                     <RowDefinition/>
+                    <RowDefinition/>
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="150"/>
-                    <ColumnDefinition Width="850"/>
+                    <ColumnDefinition Width="190"/>
+                    <ColumnDefinition Width="830"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Current Image File Name:" Grid.Row="0" Grid.Column="0" Width="150"/>
-                <TextBlock Name="currentFileName"  Grid.Row="0" Grid.Column="1" Width="800"/>
-                <TextBlock Text="Current Image Folder Path:" Grid.Row="1" Grid.Column="0" Width="150"/>
-                <TextBlock Name="currentPath"  Grid.Row="1" Grid.Column="1" Width="800"/>
-                <TextBlock Text="Current Label File:" Grid.Row="2" Grid.Column="0" Width="150"/>
-                <TextBlock Name="currentLabelFile" Grid.Row="2" Grid.Column="1" Width="800"/>
+                <TextBlock Text="Current Image Model Coinfidence:" Grid.Row="0" Grid.Column="0"/>
+                <TextBlock Name="currentImageConfidence"  Grid.Row="0" Grid.Column="1" Width="800"/>
+                <TextBlock Text="Current Image File Name:" Grid.Row="1" Grid.Column="0"/>
+                <TextBlock Name="currentFileName"  Grid.Row="1" Grid.Column="1" Width="800"/>
+                <TextBlock Text="Current Image Folder Path:" Grid.Row="2" Grid.Column="0"/>
+                <TextBlock Name="currentPath"  Grid.Row="2" Grid.Column="1" Width="800"/>
+                <TextBlock Text="Current Label File:" Grid.Row="3" Grid.Column="0"/>
+                <TextBlock Name="currentLabelFile" Grid.Row="3" Grid.Column="1" Width="800"/>
             </Grid>
 
         </StatusBar>
