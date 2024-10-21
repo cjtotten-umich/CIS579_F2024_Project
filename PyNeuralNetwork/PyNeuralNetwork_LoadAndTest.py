@@ -1,10 +1,39 @@
 import os
+import os.path
 import numpy as np
 import pandas as pd
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
-model = load_model('model.keras', compile=False)
+print ("Which training set?")
+print ("(1) Full Training Set")
+print ("(2) Clean Training Set")
+print ("(3) Strictly Clean Training Set")
+choice = input("PLEASE ENTER A NUMBER:") 
+trainingSetChoice = int(choice)
+
+if trainingSetChoice == 1:
+    if os.path.isfile('full.keras'):
+        model = load_model('full.keras', compile=False)
+    else:
+        print ('That model needs to be trained first')
+        exit()
+elif trainingSetChoice == 2:
+    if os.path.isfile('clean.keras'):
+        model = load_model('clean.keras', compile=False)
+    else:
+        print ('That model needs to be trained first')
+        exit()
+elif trainingSetChoice == 3:
+    if os.path.isfile('strict.keras'):
+        model = load_model('strict.keras', compile=False)
+    else:
+        print ('That model needs to be trained first')
+        exit()
+else:
+    print ('I DO NOT KNOW WHAT YOU WANT')
+    exit()
+    
 
 IMG_HEIGHT, IMG_WIDTH = 512, 512
 image_dir = '/data/TestData/' 
@@ -29,14 +58,12 @@ def predict_directory(image_dir):
     i = 0
     for filename in os.listdir(image_dir):
         i += 1
-        if filename.endswith('.jpg') and i < 1000:
+        if filename.endswith('.jpg') and i < 100:
             image_path = os.path.join(image_dir, filename)
-            # Get class and bounding box predictions
             probability_prediction, position_prediction = predict_image(image_path)
-            # Append the results (filename, class, bounding box)
             results.append({
                 'filename': filename,
-                'probability': probability_prediction,
+                'probability': probability_prediction[0],
                 'x': position_prediction[0],
                 'y': position_prediction[1]
             })

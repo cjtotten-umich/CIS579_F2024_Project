@@ -16,7 +16,7 @@ mixed_precision.set_global_policy('mixed_float16')
 
 IMG_HEIGHT, IMG_WIDTH = 512, 512
 
-def custom_data_generator(image_dir, annotations_file, batch_size, image_size):
+def data_generator(image_dir, annotations_file, batch_size, image_size):
     annotations = pd.read_csv(annotations_file)
     num_samples = len(annotations)
     
@@ -107,23 +107,23 @@ model = Model(inputs=input_layer, outputs=[probability_output, position_output])
 
 model.compile(
     optimizer=Adam(learning_rate=0.001),
-    loss={'probability': 'binary_crossentropy', 'position': 'mean_squared_error'},
+    loss={'probability': 'mean_squared_error', 'position': 'mean_squared_error'},
     metrics={'probability': 'accuracy', 'position': 'mean_squared_error'}
 )
 
-#model.summary()
+model.summary()
 
 batch_size = 16
 epochs = 50
 
-train_generator = custom_data_generator(
+train_generator = data_generator(
     image_dir=train_image_dir,
     annotations_file=train_annotations_file,
     batch_size=batch_size,
     image_size=(IMG_HEIGHT, IMG_WIDTH)
 )
 
-validation_generator = custom_data_generator(
+validation_generator = data_generator(
     image_dir=val_image_dir,
     annotations_file=val_annotations_file,
     batch_size=batch_size,
@@ -136,7 +136,17 @@ num_val_samples = len(pd.read_csv(val_annotations_file))
 
 for epoch in range(epochs):
     print(f"Epoch {epoch + 1}/{epochs}")
-    
+
+    val_loss = model.evaluate(
+        validation_generator,
+        steps=num_val_samples // batch_size,
+        return_dict=True
+    )
+
+    # Access individual metrics
+    print(f"Validation Classification Accuracy: {val_loss['probability_accuracy'] * 100:.2f}%")
+    print(f"Validation Position MSE: {val_loss['position_mean_squared_error']:.4f}")
+
     for step, (X_batch, y_batch) in enumerate(train_generator):
         mse = tf.keras.losses.MeanSquaredError()
         #bce = tf.keras.losses.BinaryCrossentropy()
@@ -165,8 +175,8 @@ for epoch in range(epochs):
         model.optimizer.apply_gradients(zip(gradients, model.trainable_weights))
         
         if step % 10 == 0:
-            print(f"Step {step}: loss = {total_loss.numpy()}")
-        
+            print(f"Step {step}: loss = {total_loss.numpy()}")       
+
         if step >= (num_train_samples // batch_size):
             break
 
@@ -179,6 +189,3 @@ elif trainingSetChoice == 2:
 elif trainingSetChoice == 3:
     model.save('strict.keras')
 
-# Evaluate the model on validation data
-#val_loss, val_class_acc = model.evaluate(validation_generator, steps=num_val_samples // batch_size)
-#print(f"Validation Classification Accuracy: {val_class_acc * 100:.2f}%")
