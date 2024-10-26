@@ -9,8 +9,14 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 from tensorflow.keras import mixed_precision
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+import warnings
+import logging
+
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+logging.getLogger('tensorflow.core').setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.simplefilter("ignore")
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 mixed_precision.set_global_policy('mixed_float16')
 
@@ -54,6 +60,7 @@ print ("Which training set?")
 print ("(1) Full Training Set")
 print ("(2) Clean Training Set")
 print ("(3) Strictly Clean Training Set")
+print ("(4) Strictly Clean AND Balanced Training Set")
 choice = input("PLEASE ENTER A NUMBER:") 
 trainingSetChoice = int(choice)
 
@@ -72,6 +79,11 @@ elif trainingSetChoice == 3:
     train_annotations_file = '/data/TrainingData/strict/annotations.csv'
     val_image_dir = '/data/TrainingData/strict/images'
     val_annotations_file = '/data/TrainingData/strict/annotations.csv'
+elif trainingSetChoice == 4:
+    train_image_dir = '/data/TrainingData/strictbalanced/images'
+    train_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
+    val_image_dir = '/data/TrainingData/strictbalanced/images'
+    val_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
 else:
     print ('I DO NOT KNOW WHAT YOU WANT')
     exit()
@@ -134,18 +146,11 @@ validation_generator = data_generator(
 num_train_samples = len(pd.read_csv(train_annotations_file))
 num_val_samples = len(pd.read_csv(val_annotations_file))
 
+historyProbability = []
+historyPosition = []
+
 for epoch in range(epochs):
-    print(f"Epoch {epoch + 1}/{epochs}")
-
-    val_loss = model.evaluate(
-        validation_generator,
-        steps=num_val_samples // batch_size,
-        return_dict=True
-    )
-
-    # Access individual metrics
-    print(f"Validation Classification Accuracy: {val_loss['probability_accuracy'] * 100:.2f}%")
-    print(f"Validation Position MSE: {val_loss['position_mean_squared_error']:.4f}")
+    print(f"Epoch {epoch + 1} of {epochs}")
 
     for step, (X_batch, y_batch) in enumerate(train_generator):
         mse = tf.keras.losses.MeanSquaredError()
@@ -179,6 +184,19 @@ for epoch in range(epochs):
 
         if step >= (num_train_samples // batch_size):
             break
+        
+    val_loss = model.evaluate(
+        validation_generator,
+        steps=num_val_samples // batch_size,
+        return_dict=True
+    )
+    
+    # Access individual metrics
+    print(f"Validation Classification Accuracy: {val_loss['probability_accuracy'] * 100:.2f}%")
+    print(f"Validation Position MSE: {val_loss['position_mean_squared_error']:.4f}")
+    
+    historyProbability.append(val_loss['probability_accuracy'])
+    historyPosition.append(val_loss['position_mean_squared_error'])
 
 #print (history.history)
 
@@ -188,4 +206,11 @@ elif trainingSetChoice == 2:
     model.save('clean.keras')
 elif trainingSetChoice == 3:
     model.save('strict.keras')
+elif trainingSetChoice == 3:
+    model.save('strictbalanced.keras')
 
+    
+print ("PROBABILITY HISTORY")
+print (historyProbability)
+print ("POSITION HISTORY")
+print (historyPosition)
