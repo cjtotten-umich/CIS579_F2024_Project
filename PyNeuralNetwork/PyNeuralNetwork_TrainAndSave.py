@@ -54,6 +54,7 @@ print ("Which training set?")
 print ("(1) Full Training Set")
 print ("(2) Clean Training Set")
 print ("(3) Strictly Clean Training Set")
+print ("(4) Full Clean and Balanced Training Set")
 choice = input("PLEASE ENTER A NUMBER:") 
 trainingSetChoice = int(choice)
 
@@ -72,6 +73,11 @@ elif trainingSetChoice == 3:
     train_annotations_file = '/data/TrainingData/strict/annotations.csv'
     val_image_dir = '/data/TrainingData/strict/images'
     val_annotations_file = '/data/TrainingData/strict/annotations.csv'
+elif trainingSetChoice == 4:
+    train_image_dir = '/data/TrainingData/strictbalanced/images'
+    train_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
+    val_image_dir = '/data/TrainingData/strictbalanced/images'
+    val_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
 else:
     print ('I DO NOT KNOW WHAT YOU WANT')
     exit()
@@ -188,4 +194,6 @@ elif trainingSetChoice == 2:
     model.save('clean.keras')
 elif trainingSetChoice == 3:
     model.save('strict.keras')
+elif trainingSetChoice == 4:
+    model.save('strictbalanced.keras')
 
