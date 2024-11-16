@@ -67,29 +67,29 @@ trainingSetChoice = int(choice)
 
 if trainingSetChoice == 1:
     train_image_dir = '/data/TrainingData/full/images'
-    train_annotations_file = '/data/TrainingData/full/annotations.csv'
+    train_annotations_file = '/data/TrainingData/full/train.csv'
     val_image_dir = '/data/TrainingData/full/images'
-    val_annotations_file = '/data/TrainingData/full/annotations.csv'
+    val_annotations_file = '/data/TrainingData/full/validate.csv'
 elif trainingSetChoice == 2:
     train_image_dir = '/data/TrainingData/clean/images'
-    train_annotations_file = '/data/TrainingData/clean/annotations.csv'
+    train_annotations_file = '/data/TrainingData/clean/train.csv'
     val_image_dir = '/data/TrainingData/clean/images'
-    val_annotations_file = '/data/TrainingData/clean/annotations.csv'
+    val_annotations_file = '/data/TrainingData/clean/validate.csv'
 elif trainingSetChoice == 3:
     train_image_dir = '/data/TrainingData/strict/images'
-    train_annotations_file = '/data/TrainingData/strict/annotations.csv'
+    train_annotations_file = '/data/TrainingData/strict/train.csv'
     val_image_dir = '/data/TrainingData/strict/images'
-    val_annotations_file = '/data/TrainingData/strict/annotations.csv'
+    val_annotations_file = '/data/TrainingData/strict/validate.csv'
 elif trainingSetChoice == 4:
     train_image_dir = '/data/TrainingData/strictbalanced/images'
-    train_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
+    train_annotations_file = '/data/TrainingData/strictbalanced/train.csv'
     val_image_dir = '/data/TrainingData/strictbalanced/images'
-    val_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
+    val_annotations_file = '/data/TrainingData/strictbalanced/validate.csv'
 elif trainingSetChoice == 5:
     train_image_dir = '/data/TrainingData/small/images'
-    train_annotations_file = '/data/TrainingData/small/annotations.csv'
+    train_annotations_file = '/data/TrainingData/small/train.csv'
     val_image_dir = '/data/TrainingData/small/images'
-    val_annotations_file = '/data/TrainingData/small/annotations.csv'
+    val_annotations_file = '/data/TrainingData/small/validate.csv'
 else:
     print ('I DO NOT KNOW WHAT YOU WANT')
     exit()
@@ -147,7 +147,7 @@ train_generator = data_generator(
 validation_generator = data_generator(
     image_dir=val_image_dir,
     annotations_file=val_annotations_file,
-    batch_size=batch_size,
+    batch_size=1,
     image_size=(IMG_HEIGHT, IMG_WIDTH)
 )
 
@@ -220,7 +220,6 @@ elif trainingSetChoice == 4:
 elif trainingSetChoice == 5:
     model.save('small.keras')
 
-    
 print ("PROBABILITY HISTORY")
 print (historyProbability)
 print ("POSITION HISTORY")
