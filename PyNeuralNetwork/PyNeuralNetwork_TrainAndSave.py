@@ -61,6 +61,7 @@ print ("(1) Full Training Set")
 print ("(2) Clean Training Set")
 print ("(3) Strictly Clean Training Set")
 print ("(4) Strictly Clean AND Balanced Training Set")
+print ("(5) Small AND Balanced Training Set (50 + 50)")
 choice = input("PLEASE ENTER A NUMBER:") 
 trainingSetChoice = int(choice)
 
@@ -84,6 +85,11 @@ elif trainingSetChoice == 4:
     train_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
     val_image_dir = '/data/TrainingData/strictbalanced/images'
     val_annotations_file = '/data/TrainingData/strictbalanced/annotations.csv'
+elif trainingSetChoice == 5:
+    train_image_dir = '/data/TrainingData/small/images'
+    train_annotations_file = '/data/TrainingData/small/annotations.csv'
+    val_image_dir = '/data/TrainingData/small/images'
+    val_annotations_file = '/data/TrainingData/small/annotations.csv'
 else:
     print ('I DO NOT KNOW WHAT YOU WANT')
     exit()
@@ -125,8 +131,11 @@ model.compile(
 
 model.summary()
 
-batch_size = 16
-epochs = 50
+epochChoice = input("PLEASE ENTER NUMBER OF EPOCHS:")
+batchChoice = input("PLEASE ENTER NUMBER OF ITEMS IN BATCH:")
+
+batch_size = int(batchChoice)
+epochs = int(epochChoice)
 
 train_generator = data_generator(
     image_dir=train_image_dir,
@@ -206,8 +215,10 @@ elif trainingSetChoice == 2:
     model.save('clean.keras')
 elif trainingSetChoice == 3:
     model.save('strict.keras')
-elif trainingSetChoice == 3:
+elif trainingSetChoice == 4:
     model.save('strictbalanced.keras')
+elif trainingSetChoice == 5:
+    model.save('small.keras')
 
     
 print ("PROBABILITY HISTORY")

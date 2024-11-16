@@ -10,6 +10,7 @@ print ("(1) Full Training Set")
 print ("(2) Clean Training Set")
 print ("(3) Strictly Clean Training Set")
 print ("(4) Strictly Clean AND Balanced Training Set")
+print ("(5) Small AND Balanced Training Set (50 + 50)")
 choice = input("PLEASE ENTER A NUMBER:") 
 trainingSetChoice = int(choice)
 
@@ -34,6 +35,12 @@ elif trainingSetChoice == 3:
 elif trainingSetChoice == 4:
     if os.path.isfile('strictbalanced.keras'):
         model = load_model('strictbalanced.keras', compile=False)
+    else:
+        print ('That model needs to be trained first')
+        exit()
+elif trainingSetChoice == 5:
+    if os.path.isfile('small.keras'):
+        model = load_model('small.keras', compile=False)
     else:
         print ('That model needs to be trained first')
         exit()
