@@ -55,159 +55,164 @@ def data_generator(image_dir, annotations_file, batch_size, image_size):
             
             yield X, {'probability': y_probability, 'position': y_position}
   
-
-for trainingSetChoice in range(1, 6):
-    for batchSize in [4, 8, 16]:
-        for learningRate in [0.01, 0.001, 0.0001, 0.00001]:
-
-            if trainingSetChoice == 1:
-                train_image_dir = '/data/TrainingData/full/images'
-                train_annotations_file = '/data/TrainingData/full/train.csv'
-                val_image_dir = '/data/TrainingData/full/images'
-                val_annotations_file = '/data/TrainingData/full/validate.csv'
-            elif trainingSetChoice == 2:
-                train_image_dir = '/data/TrainingData/clean/images'
-                train_annotations_file = '/data/TrainingData/clean/train.csv'
-                val_image_dir = '/data/TrainingData/clean/images'
-                val_annotations_file = '/data/TrainingData/clean/validate.csv'
-            elif trainingSetChoice == 3:
-                train_image_dir = '/data/TrainingData/strict/images'
-                train_annotations_file = '/data/TrainingData/strict/train.csv'
-                val_image_dir = '/data/TrainingData/strict/images'
-                val_annotations_file = '/data/TrainingData/strict/validate.csv'
-            elif trainingSetChoice == 4:
-                train_image_dir = '/data/TrainingData/strictbalanced/images'
-                train_annotations_file = '/data/TrainingData/strictbalanced/train.csv'
-                val_image_dir = '/data/TrainingData/strictbalanced/images'
-                val_annotations_file = '/data/TrainingData/strictbalanced/validate.csv'
-            elif trainingSetChoice == 5:
-                train_image_dir = '/data/TrainingData/small/images'
-                train_annotations_file = '/data/TrainingData/small/train.csv'
-                val_image_dir = '/data/TrainingData/small/images'
-                val_annotations_file = '/data/TrainingData/small/validate.csv'
-            else:
-                print ('I DO NOT KNOW WHAT YOU WANT')
-                exit()
-
-
-            input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)) # change to 1 for only red channel
-
-            x = Conv2D(32, (3, 3), activation='relu')(input_layer)
-            x = BatchNormalization()(x)
-            x = MaxPooling2D(pool_size=(2, 2))(x)
-
-            x = Conv2D(64, (3, 3), activation='relu')(x)
-            x = BatchNormalization()(x)
-            x = MaxPooling2D(pool_size=(2, 2))(x)
-
-            x = Conv2D(128, (3, 3), activation='relu')(x)
-            x = BatchNormalization()(x)
-            x = MaxPooling2D(pool_size=(2, 2))(x)
-
-            x = Conv2D(256, (3, 3), activation='relu')(x)
-            x = BatchNormalization()(x)
-            x = MaxPooling2D(pool_size=(2, 2))(x)
-
-            x = Flatten()(x)
-            x = Dense(512, activation='relu')(x)
-            x = Dropout(0.5)(x)
-
-            probability_output = Dense(1, activation='sigmoid', name='probability')(x)
-
-            position_output = Dense(2, activation='sigmoid', name='position')(x)
-
-            model = Model(inputs=input_layer, outputs=[probability_output, position_output])
-
-            model.compile(
-                optimizer=Adam(learning_rate=learningRate),
-                loss={'probability': 'mean_squared_error', 'position': 'mean_squared_error'},
-                metrics={'probability': 'accuracy', 'position': 'mean_squared_error'}
-            )
-
-            model.summary()
-        
-            epochs = 100
-
-            train_generator = data_generator(
-                image_dir=train_image_dir,
-                annotations_file=train_annotations_file,
-                batch_size=batchSize,
-                image_size=(IMG_HEIGHT, IMG_WIDTH)
-            )
-
-            valBatchSize = 1
-            validation_generator = data_generator(
-                image_dir=val_image_dir,
-                annotations_file=val_annotations_file,
-                batch_size=valBatchSize,
-                image_size=(IMG_HEIGHT, IMG_WIDTH)
-            )
-
-            # Get the number of training and validation samples from the CSV files
-            num_train_samples = len(pd.read_csv(train_annotations_file))
-            num_val_samples = len(pd.read_csv(val_annotations_file))
-
-            historyProbability = []
-            historyPosition = []
-
-            for epoch in range(epochs):
-                print(f"Epoch {epoch + 1} of {epochs}")
-
-                for step, (X_batch, y_batch) in enumerate(train_generator):
-                    mse = tf.keras.losses.MeanSquaredError()
-                    #bce = tf.keras.losses.BinaryCrossentropy()
-
-                    with tf.GradientTape() as tape:
-                        prediction_probability, prediction_position = model(X_batch, training=True)
             
-                        true_probability = y_batch['probability']
-                        true_position = y_batch['position']
-            
-                        loss_probability = mse(true_probability, prediction_probability)
-            
-                        mask = tf.cast(tf.greater_equal(true_probability, 0.5), dtype=tf.float32)
-                        mask = tf.expand_dims(mask, axis=-1)    
-            
-                        raw_loss_position = mse(true_position, prediction_position)
-                        loss_position = raw_loss_position * mask
-            
-                        loss_position = tf.reduce_sum(loss_position)
-                        if step % 10 == 0:
-                            print(f"Step {step}: loss_probability = {loss_probability.numpy()}, loss_position = {loss_position.numpy()}")
-                        total_loss = loss_probability + loss_position
-        
-                    gradients = tape.gradient(total_loss, model.trainable_weights)
-        
-                    model.optimizer.apply_gradients(zip(gradients, model.trainable_weights))
-        
-                    if step % 10 == 0:
-                        print(f"Step {step}: loss = {total_loss.numpy()}")       
-
-                    if step >= (num_train_samples // batchSize):
-                        break
-        
-                val_loss = model.evaluate(
-                    validation_generator,
-                    steps=num_val_samples // valBatchSize,
-                    return_dict=True
-                )
+tf.keras.backend.clear_session()
     
-                # Access individual metrics
-                print(f"Validation Classification Accuracy: {val_loss['probability_accuracy'] * 100:.2f}%")
-                print(f"Validation Position MSE: {val_loss['position_mean_squared_error']:.4f}")
+trainingSetChoice = 1
+batchSize = 16
+learningRate = 0.00001
+
+print("PARAM=[" +  str(trainingSetChoice) + "," + str(batchSize) + "," + str(learningRate) + "]")
+#if (trainingSetChoice == 1) or (trainingSetChoice == 2) or (trainingSetChoice == 3):
+#    continue
+
+if trainingSetChoice == 1:
+    train_image_dir = '/data/TrainingData/full/images'
+    train_annotations_file = '/data/TrainingData/full/train.csv'
+    val_image_dir = '/data/TrainingData/full/images'
+    val_annotations_file = '/data/TrainingData/full/validate.csv'
+elif trainingSetChoice == 2:
+    train_image_dir = '/data/TrainingData/clean/images'
+    train_annotations_file = '/data/TrainingData/clean/train.csv'
+    val_image_dir = '/data/TrainingData/clean/images'
+    val_annotations_file = '/data/TrainingData/clean/validate.csv'
+elif trainingSetChoice == 3:
+    train_image_dir = '/data/TrainingData/strict/images'
+    train_annotations_file = '/data/TrainingData/strict/train.csv'
+    val_image_dir = '/data/TrainingData/strict/images'
+    val_annotations_file = '/data/TrainingData/strict/validate.csv'
+elif trainingSetChoice == 4:
+    train_image_dir = '/data/TrainingData/strictbalanced/images'
+    train_annotations_file = '/data/TrainingData/strictbalanced/train.csv'
+    val_image_dir = '/data/TrainingData/strictbalanced/images'
+    val_annotations_file = '/data/TrainingData/strictbalanced/validate.csv'
+elif trainingSetChoice == 5:
+    train_image_dir = '/data/TrainingData/small/images'
+    train_annotations_file = '/data/TrainingData/small/train.csv'
+    val_image_dir = '/data/TrainingData/small/images'
+    val_annotations_file = '/data/TrainingData/small/validate.csv'
+else:
+    print ('I DO NOT KNOW WHAT YOU WANT')
+    exit()
+
+input_layer = Input(shape=(IMG_HEIGHT, IMG_WIDTH, 3)) # change to 1 for only red channel
+
+x = Conv2D(32, (3, 3), activation='relu')(input_layer)
+x = BatchNormalization()(x)
+x = MaxPooling2D(pool_size=(2, 2))(x)
+
+x = Conv2D(64, (3, 3), activation='relu')(x)
+x = BatchNormalization()(x)
+x = MaxPooling2D(pool_size=(2, 2))(x)
+
+x = Conv2D(128, (3, 3), activation='relu')(x)
+x = BatchNormalization()(x)
+x = MaxPooling2D(pool_size=(2, 2))(x)
+
+x = Conv2D(256, (3, 3), activation='relu')(x)
+x = BatchNormalization()(x)
+x = MaxPooling2D(pool_size=(2, 2))(x)
+
+x = Flatten()(x)
+x = Dense(512, activation='relu')(x)
+x = Dropout(0.5)(x)
+
+probability_output = Dense(1, activation='sigmoid', name='probability')(x)
+
+position_output = Dense(2, activation='sigmoid', name='position')(x)
+
+model = Model(inputs=input_layer, outputs=[probability_output, position_output])
+
+model.compile(
+    optimizer=Adam(learning_rate=learningRate),
+    loss={'probability': 'mean_squared_error', 'position': 'mean_squared_error'},
+    metrics={'probability': 'accuracy', 'position': 'mean_squared_error'}
+)
+
+model.summary()
+        
+epochs = 100
+
+train_generator = data_generator(
+    image_dir=train_image_dir,
+    annotations_file=train_annotations_file,
+    batch_size=batchSize,
+    image_size=(IMG_HEIGHT, IMG_WIDTH)
+)
+
+valBatchSize = 1
+validation_generator = data_generator(
+    image_dir=val_image_dir,
+    annotations_file=val_annotations_file,
+    batch_size=valBatchSize,
+    image_size=(IMG_HEIGHT, IMG_WIDTH)
+)
+
+# Get the number of training and validation samples from the CSV files
+num_train_samples = len(pd.read_csv(train_annotations_file))
+num_val_samples = len(pd.read_csv(val_annotations_file))
+
+historyProbability = []
+historyPosition = []
+
+for epoch in range(epochs):
+    print(f"Epoch {epoch + 1} of {epochs}")
+
+    for step, (X_batch, y_batch) in enumerate(train_generator):
+        mse = tf.keras.losses.MeanSquaredError()
+        #bce = tf.keras.losses.BinaryCrossentropy()
+
+        with tf.GradientTape() as tape:
+            prediction_probability, prediction_position = model(X_batch, training=True)
+            
+            true_probability = y_batch['probability']
+            true_position = y_batch['position']
+            
+            loss_probability = mse(true_probability, prediction_probability)
+            
+            mask = tf.cast(tf.greater_equal(true_probability, 0.5), dtype=tf.float32)
+            mask = tf.expand_dims(mask, axis=-1)    
+            
+            raw_loss_position = mse(true_position, prediction_position)
+            loss_position = raw_loss_position * mask
+            
+            loss_position = tf.reduce_sum(loss_position)
+            if step % 10 == 0:
+                print(f"Step {step}: loss_probability = {loss_probability.numpy()}, loss_position = {loss_position.numpy()}")
+            total_loss = loss_probability + loss_position
+        
+        gradients = tape.gradient(total_loss, model.trainable_weights)
+        
+        model.optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+        
+        if step % 10 == 0:
+            print(f"Step {step}: loss = {total_loss.numpy()}")       
+
+        if step >= (num_train_samples // batchSize):
+            break
+        
+    val_loss = model.evaluate(
+        validation_generator,
+        steps=num_val_samples // valBatchSize,
+        return_dict=True
+    )
     
-                historyProbability.append(val_loss['probability_accuracy'])
-                historyPosition.append(val_loss['position_mean_squared_error'])
+    # Access individual metrics
+    print(f"Validation Classification Accuracy: {val_loss['probability_accuracy'] * 100:.2f}%")
+    print(f"Validation Position MSE: {val_loss['position_mean_squared_error']:.4f}")
+    
+    historyProbability.append(val_loss['probability_accuracy'])
+    historyPosition.append(val_loss['position_mean_squared_error'])
 
 
-            f = open("TrainingHistory.txt", "a")
-            f.write("param=[" +  str(trainingSetChoice) + "," + str(batchSize) + "," + str(learningRate) + "]")
-            f.write("\n")
-            f.write("prob=" +  str(historyProbability))
-            f.write("\n")
-            f.write("pos=" +  str(historyPosition))
-            f.write("\n")
-            f.close()
+f = open("TrainingHistory.txt", "a")
+f.write("param=[" +  str(trainingSetChoice) + "," + str(batchSize) + "," + str(learningRate) + "]")
+f.write("\n")
+f.write("prob=" +  str(historyProbability))
+f.write("\n")
+f.write("pos=" +  str(historyPosition))
+f.write("\n")
+f.close()
 
 
 print ('DONE')
