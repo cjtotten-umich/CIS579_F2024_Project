@@ -7,6 +7,7 @@ using System.Drawing;
 using StreetViewImageRetrieve;
 using System.Threading;
 using System.Linq;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace NeuralNetwork_Console
 {
@@ -14,12 +15,12 @@ namespace NeuralNetwork_Console
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Enter latitude:");
-            var lat = Console.ReadLine();
-            Console.WriteLine("Enter longitude:");
-            var lng = Console.ReadLine();
-            TestStreetView(Convert.ToDouble(lat), Convert.ToDouble(lng));
-            //TestNetwork("C:\\Images", "C:\\Training");
+            //Console.WriteLine("Enter latitude:");
+            //var lat = Console.ReadLine();
+            //Console.WriteLine("Enter longitude:");
+            //var lng = Console.ReadLine();
+            //TestStreetView(Convert.ToDouble(lat), Convert.ToDouble(lng));
+            TestNetwork("C:\\Users\\colin.totten\\source\\repos\\NeuralNetwork\\TrainingData\\small");
         }
 
         private static void TestStreetView(double lat, double lng)
@@ -83,7 +84,7 @@ namespace NeuralNetwork_Console
             Console.ReadLine();
         }
 
-        private static void TestNetwork(string testImages, string trainingImages)
+        private static void TestNetwork(string folderPath)
         {
             var learningRate = 0.01;
             var r = new Random();
@@ -99,55 +100,71 @@ namespace NeuralNetwork_Console
             model.AddLayer(new AveragePoolingLayer(new VolumeSize(82, 82, 8), 2));
             model.AddLayer(new FullyConnectedLayer(50, learningRate, new VolumeSize(41, 41, 8)));
             model.AddLayer(new LayeredNormalizationLayer(new VolumeSize(50, 1, 1)));
-            model.AddLayer(new FullyConnectedLayer(5, learningRate, new VolumeSize(50, 1, 1)));
-            model.AddLayer(new SigmoidActivationLayer(new VolumeSize(5, 1, 1)));
+            model.AddLayer(new FullyConnectedLayer(3, learningRate, new VolumeSize(50, 1, 1)));
+            model.AddLayer(new SigmoidActivationLayer(new VolumeSize(3, 1, 1)));
 
             model.Build();
-            
+
             // Train the model
-            var paths = Directory.GetFiles(trainingImages, "*.jpg");
-            var pathList = new List<string>(paths);
             var trainingItems = new List<TrainingItem>();
-            foreach (var p in pathList)
+            var data = File.ReadAllLines(folderPath + "\\train.csv");
+            foreach (var line in data)
             {
-                var file = Path.GetFileNameWithoutExtension(p);
-                var directory = Path.GetDirectoryName(p);
-                var image = (Bitmap)Image.FromFile(p);
-                var data = File.ReadAllText(directory + "\\" + file + ".txt");
-                var truthString = data.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-                var truth = Array.ConvertAll(truthString, double.Parse);
-                var truthVolume = new Volume(truth, new VolumeSize(truth.Length, 1, 1));
-                trainingItems.Add(new TrainingItem(file, image, truthVolume));
+                if (line.Contains("filename"))
+                {
+                    continue;
+                }
+
+                var truth = line.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                var image = (Bitmap)System.Drawing.Image.FromFile(folderPath + "\\images\\" + truth[0]);
+                var probability = Convert.ToDouble(truth[1]);
+                var x = Convert.ToDouble(truth[2]);
+                var y = Convert.ToDouble(truth[3]);
+                var truthVolume = new Volume(new double[] { probability, x, y }, new VolumeSize(3, 1, 1));
+                trainingItems.Add(new TrainingItem(truth[0], image, truthVolume));
+            }
+
+            // Load validation
+            var validationItems = new List<TrainingItem>();
+            data = File.ReadAllLines(folderPath + "\\validate.csv");
+            foreach (var line in data)
+            {
+                if (line.Contains("filename"))
+                {
+                    continue;
+                }
+
+                var truth = line.Split(new[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                var image = (Bitmap)System.Drawing.Image.FromFile(folderPath + "\\images\\" + truth[0]);
+                var probability = Convert.ToDouble(truth[1]);
+                var x = Convert.ToDouble(truth[2]);
+                var y = Convert.ToDouble(truth[3]);
+                var truthVolume = new Volume(new double[] { probability, x, y }, new VolumeSize(3, 1, 1));
+                validationItems.Add(new TrainingItem(truth[0], image, truthVolume));
             }
 
             var epochs = 50;
             for (int i = 0; i < epochs; i++)
             {
-                foreach (var t in trainingItems)
+                for (int j = 0; j < trainingItems.Count; j++)
                 {
-                    Console.WriteLine("TRAINING : " + t.Name + " EPOCH:" + i);
+                    var t = trainingItems[j];
+                    Console.WriteLine("TRAINING : " + t.Name + "(" + j + "/" + trainingItems.Count + ") EPOCH:" + i);
                     model.Train(t.Image, t.Truth, false);
                     var result = model.Process(t.Image);
                     t.LastError = Processing.MeanSquareError(result, t.Truth);
                     Console.WriteLine("AVERAGE ERROR: " + trainingItems.Average(a => a.LastError) + " " + result.StringVersion());
                 }
+
+                foreach(var v in validationItems)
+                {
+                    var result = model.Process(v.Image);
+                    Console.WriteLine(v.Truth.Data[0] - result.Data[0]);
+                }
             }
 
             Console.WriteLine("DONE TRAINING");
 
-            // Test the model
-            paths = Directory.GetFiles(testImages);
-            pathList = new List<string>(paths);
-            pathList.Sort((a, b) => a.CompareTo(b));
-            foreach (var p in pathList)
-            {
-                var image = (Bitmap)Image.FromFile(p);
-                var result = model.Process(image);
-                if (result.Data[0] > 0.25)
-                {
-                    Console.WriteLine(p + " - " + result.StringVersion());
-                }
-            }
 
             Console.WriteLine("Complete, any key to exit...");
             Console.Read();

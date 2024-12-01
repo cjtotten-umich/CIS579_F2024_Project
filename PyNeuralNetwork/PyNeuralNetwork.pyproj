@@ -21,10 +21,16 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="PyNeuralNetwork_TrainAndSave_TESTING.py" />
     <Compile Include="PyNeuralNetwork_TrainAndSave.py" />
+    <Compile Include="Results\Plot Results.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="PyNeuralNetwork_LoadAndTest.py" />
+    <Content Include="Results\Plot Results.ipynb" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Results\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
