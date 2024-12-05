@@ -19,7 +19,7 @@ namespace NeuralNetwork
 
             if (NextLayer == null)
             {
-                return BackPropegate(volume, Processing.ComponentError(result, truth), verbose);
+                return BackPropegate(volume, Processing.StopSignError(result, truth), verbose);
             }
 
             var error = NextLayer.Train(result, truth, verbose);

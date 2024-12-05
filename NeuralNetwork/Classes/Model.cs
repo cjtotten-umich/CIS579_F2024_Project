@@ -2,12 +2,13 @@
 {
     using System;
     using System.Drawing;
-    using System.Runtime.Serialization;
     using System.Text;
 
     public class Model
     {
         public Layer FirstLayer { get; set; }
+
+        public Layer LastLayer { get; set; }
 
         public int ImageWidth { get; set; }
 
@@ -28,6 +29,10 @@
             {
                 currentLayer.PreviousLayer = currentLayer;
                 currentLayer = currentLayer.NextLayer;
+                if (currentLayer != null)
+                {
+                    LastLayer = currentLayer;
+                }
             }
 
             IsBuilt = true;

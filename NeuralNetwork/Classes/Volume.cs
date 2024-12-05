@@ -124,6 +124,18 @@ namespace NeuralNetwork
             return new Volume(data, a.Size);
         }
 
+        public static Volume operator /(Volume a, double value)
+        {
+            var data = new double[a.Size.TotalSize];
+
+            for (int i = 0; i < a.Size.TotalSize; i++)
+            {
+                data[i] = a.Data[i] / value;
+            }
+
+            return new Volume(data, a.Size);
+        }
+
         public Volume Slice(int depth)
         {
             var layerSize = Size.X * Size.Y;
