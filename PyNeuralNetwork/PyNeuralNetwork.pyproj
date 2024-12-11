@@ -21,7 +21,6 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="PyNeuralNetwork_TrainAndSave_TESTING.py" />
     <Compile Include="PyNeuralNetwork_TrainAndSave.py" />
     <Compile Include="Results\Plot Results.py" />
   </ItemGroup>
